@@ -1,0 +1,34 @@
+[
+  {
+    "id": "user_001",
+    "preferredGenres": ["Lo-fi", "Ballad"],
+    "preferredMoods": ["calm", "night"],
+    "preferredTime": "night",
+    "likedSongs": ["song_001", "song_003", "song_004"],
+    "skippedSongs": ["song_002"]
+  },
+  {
+    "id": "user_002",
+    "preferredGenres": ["Pop", "R&B"],
+    "preferredMoods": ["energetic", "bright"],
+    "preferredTime": "afternoon",
+    "likedSongs": ["song_002", "song_006"],
+    "skippedSongs": ["song_003"]
+  },
+  {
+    "id": "user_003",
+    "preferredGenres": ["R&B", "Ballad"],
+    "preferredMoods": ["emotional", "comforting"],
+    "preferredTime": "evening",
+    "likedSongs": ["song_003", "song_005"],
+    "skippedSongs": ["song_002"]
+  },
+  {
+    "id": "user_004",
+    "preferredGenres": ["Lo-fi", "Pop"],
+    "preferredMoods": ["calm", "steady"],
+    "preferredTime": "morning",
+    "likedSongs": ["song_004", "song_006"],
+    "skippedSongs": ["song_005"]
+  }
+]

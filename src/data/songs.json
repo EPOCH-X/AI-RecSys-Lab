@@ -1,0 +1,68 @@
+[
+  {
+    "id": "song_001",
+    "title": "Midnight Lo-fi",
+    "artist": "Sample Artist",
+    "genre": "Lo-fi",
+    "bpm": 72,
+    "moodTags": ["calm", "night", "emotional"],
+    "activityTags": ["study", "relax"],
+    "hasLyrics": false,
+    "energyLevel": 2
+  },
+  {
+    "id": "song_002",
+    "title": "Neon Run",
+    "artist": "City Pulse",
+    "genre": "Pop",
+    "bpm": 128,
+    "moodTags": ["energetic", "bright"],
+    "activityTags": ["workout", "commute"],
+    "hasLyrics": true,
+    "energyLevel": 5
+  },
+  {
+    "id": "song_003",
+    "title": "Rainy Window",
+    "artist": "Blue Note Room",
+    "genre": "Ballad",
+    "bpm": 68,
+    "moodTags": ["calm", "comforting", "emotional"],
+    "activityTags": ["relax", "night"],
+    "hasLyrics": true,
+    "energyLevel": 2
+  },
+  {
+    "id": "song_004",
+    "title": "Focus Lane",
+    "artist": "Mono District",
+    "genre": "Lo-fi",
+    "bpm": 84,
+    "moodTags": ["calm", "steady"],
+    "activityTags": ["study", "work"],
+    "hasLyrics": false,
+    "energyLevel": 3
+  },
+  {
+    "id": "song_005",
+    "title": "Velvet Afterglow",
+    "artist": "Moon Scent",
+    "genre": "R&B",
+    "bpm": 92,
+    "moodTags": ["emotional", "night", "smooth"],
+    "activityTags": ["relax", "commute"],
+    "hasLyrics": true,
+    "energyLevel": 3
+  },
+  {
+    "id": "song_006",
+    "title": "Morning Switch",
+    "artist": "Sunline",
+    "genre": "Pop",
+    "bpm": 110,
+    "moodTags": ["bright", "fresh"],
+    "activityTags": ["morning", "commute"],
+    "hasLyrics": true,
+    "energyLevel": 4
+  }
+]

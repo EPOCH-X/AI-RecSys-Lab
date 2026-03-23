@@ -1,203 +1,204 @@
 # System Design
 
-## Akinator-Style AI Music Recommender
+## 목적
 
-> `DEV_README.md`를 구현 가능한 수준으로 구체화한 상세 설계 문서
+이 문서는 `develop` 브랜치에서 팀원 4명이 충돌을 최소화하면서 작업할 수 있도록, 담당별 작업 범위와 시작 파일만 정리한 작업 문서다.
 
-## 1. 설계 목표
+설명용 내용은 `DEV_README.md`에 있고, 이 문서는 "누가 어디를 먼저 수정해야 하는지"만 본다.
 
-이 문서는 아래 목적을 위해 작성한다.
+## 공통 규칙
 
-- 팀원이 같은 구조를 기준으로 병렬 개발할 수 있도록 한다.
-- 질문 흐름과 추천 흐름을 명확히 분리한다.
-- 프론트엔드 단독 프로토타입으로 빠르게 구현 가능하도록 범위를 제한한다.
-- 이후 서버리스/백엔드 구조로 확장 가능한 인터페이스를 남긴다.
+- 공통 타입 변경이 필요하면 먼저 팀에 공유하고 수정한다.
+- 다른 담당 영역의 파일은 되도록 직접 수정하지 않는다.
+- 꼭 공통 파일을 건드려야 하면 마지막에 머지하거나 담당자와 먼저 맞춘다.
+- 우선 `src/data`, `src/types`, `src/domain`, `src/services`, `src/store`, `src/pages`, `src/components` 기준으로 역할을 나눈다.
 
-## 2. 범위
-
-### 포함
-
-- React + Vite + TypeScript 기반 SPA
-- 질문 기반 취향 수집 UI
-- LangGraph를 활용한 질문 플로우 및 추천 플로우
-- 로컬 JSON 기반 추천 실험
-- Gemini를 이용한 추천 이유 생성
-- 로컬 스토리지 기반 세션/피드백 저장
-
-### 제외
-
-- 사용자 로그인
-- 실제 스트리밍 서비스 연동
-- 대규모 추천 데이터 파이프라인
-- 운영 환경 보안 아키텍처
-
-## 3. 상위 아키텍처
+## 현재 기본 구조
 
 ```text
-[UI Layer]
-Home / Question / Result
-        |
-        v
-[App State Layer]
-Zustand or Context + local component state
-        |
-        v
-[Workflow Layer]
-questionGraph / recommendationGraph
-        |
-        v
-[Domain Layer]
-question engine / tag normalization / scoring / reranking / feedback
-        |
-        v
-[Data Layer]
-songs.json / users.json / localStorage / Gemini API
+src/
+├─ app/
+├─ components/
+│  ├─ common/
+│  ├─ question/
+│  └─ result/
+├─ data/
+├─ domain/
+│  ├─ feedback/
+│  ├─ normalization/
+│  ├─ recommendation/
+│  └─ scoring/
+├─ graph/
+│  └─ nodes/
+├─ pages/
+├─ services/
+├─ store/
+├─ types/
+└─ utils/
 ```
 
-### 설계 원칙
+## 담당별 작업 분리
 
-- UI는 입력과 출력에 집중하고, 판단 로직은 그래프와 도메인 함수로 분리한다.
-- LangGraph는 "상태 전이"를 담당하고, 실제 계산은 순수 함수에 위임한다.
-- LLM은 추천 생성기가 아니라 설명 생성기 역할에 한정한다.
-- 모든 추천 점수는 디버깅 가능하도록 중간 결과를 남긴다.
+## 1. 프론트엔드 - 용완님
 
-## 4. 사용자 시나리오
+### 담당 목표
 
-### 시나리오 A: 정상 질문 완료 후 추천
+- 질문 화면 구현
+- 로딩 화면 구현
+- 결과 화면 구현
+- AI API 호출 결과를 화면에 출력
+- 팀원들이 만든 추천 결과를 UI에 연결
 
-1. 사용자가 시작 페이지 진입
-2. "추천 시작" 클릭
-3. 5~7개 질문에 답변
-4. 질문 완료 후 추천 그래프 실행
-5. 추천 결과 3~5곡과 이유 표시
-6. 사용자가 좋아요/싫어요/다시 추천 선택
+### 주 작업 폴더
 
-### 시나리오 B: 일부 질문 스킵 후 추천
+- `src/pages/`
+- `src/components/question/`
+- `src/components/result/`
+- `src/components/common/`
+- `src/app/`
+- `src/styles.css`
 
-1. 사용자가 일부 질문에서 스킵 선택
-2. 최소 정보 충족 시 추천 그래프 실행
-3. 부족한 정보는 기본값 또는 약한 가중치로 처리
+### 필요 시 읽기만 할 파일
 
-### 시나리오 C: 자유 텍스트 입력 포함
+- `src/types/graph.ts`
+- `src/types/question.ts`
+- `src/data/questions.ts`
+- `src/store/useAppStore.ts`
+- `src/services/gemini.ts`
 
-1. 사용자가 "지금 기분" 같은 항목에 자유 텍스트 입력
-2. Gemini 또는 규칙 기반 태그 정규화 실행
-3. 정규화된 태그를 추천 입력으로 병합
+### 먼저 시작할 파일
 
-## 5. 화면 설계
+1. `src/pages/QuestionPage.tsx`
+2. `src/components/question/QuestionCard.tsx`
+3. `src/components/question/AnswerOptionList.tsx`
+4. `src/components/common/ProgressBar.tsx`
+5. `src/pages/ResultPage.tsx`
+6. `src/components/result/RecommendationCard.tsx`
+7. `src/styles.css`
 
-## 5.1 페이지 구조
+### 추가 생성 권장 파일
 
-| 페이지 | 목적 | 핵심 요소 |
-|---|---|---|
-| `HomePage` | 시작 진입 | 프로젝트 소개, 시작 버튼, 최근 세션 복원 |
-| `QuestionPage` | 질문 진행 | 진행 바, 질문 카드, 답변 버튼, 스킵 버튼 |
-| `LoadingPage` 또는 섹션 | 추천 중 상태 표시 | 현재 단계 표시, 스피너, 처리 상태 메시지 |
-| `ResultPage` | 추천 결과 표시 | 추천 카드, 추천 이유, 점수 근거, 피드백 버튼 |
+- `src/pages/LoadingPage.tsx`
+- `src/components/common/LoadingStepView.tsx`
+- `src/components/result/FeedbackBar.tsx`
+- `src/components/result/ResultList.tsx`
 
-### 5.2 공통 UI 컴포넌트
+### 프론트엔드 작업 순서
 
-| 컴포넌트 | 역할 |
-|---|---|
-| `QuestionCard` | 질문 텍스트와 설명 표시 |
-| `AnswerOptionList` | 객관식 답변 목록 렌더링 |
-| `AnswerChip` | 선택형 답변 버튼 |
-| `ProgressBar` | 질문 진행률 표시 |
-| `LoadingStepView` | 추천 처리 단계 표시 |
-| `RecommendationCard` | 곡 정보와 추천 이유 표시 |
-| `ScoreBreakdown` | 콘텐츠/협업/상황 점수 표시 |
-| `FeedbackBar` | 좋아요/싫어요/재추천 액션 제공 |
+1. `QuestionPage`에서 질문 1개 미리보기 상태를 실제 질문 순회 UI로 바꾼다.
+2. 질문 답변 클릭, 스킵, 다음 질문 이동 UI를 만든다.
+3. 로딩 화면을 따로 만들고 "AI가 추천 중" 상태를 표현한다.
+4. `ResultPage`에서 추천 카드 리스트가 실제 배열을 받아 렌더링되게 만든다.
+5. 추천 이유, 점수, 좋아요/싫어요 버튼 영역을 붙인다.
+6. 마지막에 `App.tsx` 또는 라우팅 구조를 정리한다.
 
-### 5.3 페이지 전이 규칙
+### 프론트엔드 완료 기준
 
-```text
-HomePage
- -> QuestionPage
- -> Loading
- -> ResultPage
- -> QuestionPage(재추천)
-```
+- 질문 화면에서 여러 질문을 넘길 수 있다.
+- 로딩 화면이 분리되어 있다.
+- 결과 화면에서 추천 곡 리스트가 카드 형태로 출력된다.
+- AI/추천 담당이 넘겨준 결과 배열을 그대로 받아 렌더링할 수 있다.
 
-## 6. 질문 플로우 설계
+### 프론트엔드가 직접 건드리지 않는 것이 좋은 파일
 
-### 6.1 질문 데이터 모델
+- `src/data/songs.json`
+- `src/data/users.json`
+- `src/domain/scoring/`
+- `src/domain/recommendation/`
+- `src/domain/normalization/`
+
+## 2. 데이터 / 추천 알고리즘 - 정은님
+
+### 담당 목표
+
+- 실험용 곡 데이터 구축
+- 가상 사용자 선호도 데이터 구축
+- 콘텐츠 기반 + 협업 필터링 로직 설계 및 구현
+
+### 주 작업 폴더
+
+- `src/data/`
+- `src/domain/scoring/`
+- `src/domain/recommendation/`
+
+### 필요 시 읽기만 할 파일
+
+- `src/types/song.ts`
+- `src/types/user.ts`
+- `src/types/graph.ts`
+- `src/domain/normalization/index.ts`
+
+### 먼저 시작할 파일
+
+1. `src/data/songs.json`
+2. `src/data/users.json`
+3. `src/domain/scoring/index.ts`
+4. `src/domain/recommendation/index.ts`
+
+### 작업 내용
+
+- `songs.json`에 곡 50~100개 수준으로 메타데이터를 채운다.
+- 각 곡에는 `genre`, `bpm`, `moodTags`, `activityTags`, `hasLyrics`, `energyLevel`을 넣는다.
+- `users.json`에 가상 사용자 선호도와 `likedSongs`, `skippedSongs`를 넣는다.
+- 콘텐츠 기반 점수 함수를 구현한다.
+- 협업 필터링용 유사도 계산 또는 간단한 가중치 로직을 구현한다.
+- 최종적으로 추천 후보 배열을 반환하는 함수를 만든다.
+
+### 데이터/추천 완료 기준
+
+- `songs.json`이 추천 실험 가능한 수준으로 채워져 있다.
+- `users.json`이 협업 필터링 실험 가능한 수준으로 채워져 있다.
+- 점수 계산 함수가 `ScoredSong[]`를 반환한다.
+- 프론트엔드가 받아서 출력할 수 있는 추천 결과 배열을 만들 수 있다.
+
+### 데이터 담당이 직접 건드리지 않는 것이 좋은 파일
+
+- `src/pages/`
+- `src/components/`
+- `src/styles.css`
+
+## 3. AI / 프롬프트 / 재정렬 - 조영님
+
+### 담당 목표
+
+- Gemini에 보낼 프롬프트 설계
+- 스무고개 답변 + 상황 + 추천 후보를 기반으로 재정렬 구조 설계
+- 추천 이유 생성 형식 설계
+
+### 주 작업 폴더
+
+- `src/services/gemini.ts`
+- `src/domain/normalization/`
+- `src/graph/`
+
+### 필요 시 읽기만 할 파일
+
+- `src/types/graph.ts`
+- `src/types/question.ts`
+- `src/data/questions.ts`
+- `src/domain/recommendation/index.ts`
+- `src/domain/scoring/index.ts`
+
+### 먼저 시작할 파일
+
+1. `src/services/gemini.ts`
+2. `src/domain/normalization/index.ts`
+3. `src/graph/recommendationGraph.ts`
+
+### 작업 내용
+
+- 프롬프트 입력 형식을 정한다.
+- 자유 텍스트 답변을 태그로 바꾸는 규칙 또는 LLM 입력 형식을 만든다.
+- 추천 후보 리스트를 받아 재정렬하는 입력 포맷을 만든다.
+- 결과는 프론트엔드가 바로 출력할 수 있게 `reason` 포함 구조로 반환한다.
+- API 실패 시 fallback 문구도 정한다.
+
+### 권장 출력 형태
+
+추천 결과는 아래 구조를 유지하는 것이 좋다.
 
 ```ts
-export type QuestionType = "single" | "multi" | "boolean" | "text";
-
-export interface QuestionOption {
-  id: string;
-  label: string;
-  value: string;
-  tags?: string[];
-}
-
-export interface Question {
-  id: string;
-  title: string;
-  description?: string;
-  type: QuestionType;
-  options?: QuestionOption[];
-  required: boolean;
-  skippable: boolean;
-  mapsTo:
-    | "mood"
-    | "activity"
-    | "genre"
-    | "tempo"
-    | "time"
-    | "lyrics"
-    | "energy";
-}
-```
-
-### 6.2 추천 질문 세트
-
-| 순서 | 질문 ID | 목적 |
-|---|---|---|
-| 1 | `mood` | 현재 감정/분위기 수집 |
-| 2 | `activity` | 사용 상황 수집 |
-| 3 | `genre` | 선호 장르 수집 |
-| 4 | `tempo` | 빠르기 선호 수집 |
-| 5 | `time` | 시간대 맥락 수집 |
-| 6 | `lyrics` | 가사 유무 선호 수집 |
-| 7 | `freeTextMood` | 자유 텍스트 보강 수집 |
-
-### 6.3 질문 종료 조건
-
-아래 중 하나를 만족하면 질문 그래프를 종료한다.
-
-- 필수 질문이 모두 완료됨
-- 총 응답 수가 최소 기준 이상이고 사용자가 종료 선택
-- 스킵 포함 응답 수가 최대 질문 수에 도달
-
-## 7. LangGraph 설계
-
-### 7.1 Graph 분리 전략
-
-- `questionGraph`: 세션 시작부터 질문 종료 판단까지 담당
-- `recommendationGraph`: 후보 탐색부터 결과 포맷팅까지 담당
-
-이 둘을 분리하면 발표 설명이 쉬워지고, 추천 로직만 독립 테스트하기도 쉽다.
-
-### 7.2 공통 그래프 상태
-
-```ts
-export type SessionStatus =
-  | "idle"
-  | "questioning"
-  | "tagging"
-  | "recommending"
-  | "done"
-  | "error";
-
-export interface AnswerRecord {
-  questionId: string;
-  value: string | string[] | boolean;
-  skipped?: boolean;
-}
-
-export interface RecommendationItem {
+{
   songId: string;
   title: string;
   artist: string;
@@ -209,448 +210,141 @@ export interface RecommendationItem {
     context: number;
   };
 }
-
-export interface AppGraphState {
-  sessionId: string;
-  sessionStatus: SessionStatus;
-  currentQuestionIndex: number;
-  answers: AnswerRecord[];
-  preferenceTags: string[];
-  normalizedProfile: NormalizedUserProfile | null;
-  candidateSongs: ScoredSong[];
-  finalRecommendations: RecommendationItem[];
-  isSkipped: boolean;
-  errorMessage?: string;
-}
 ```
 
-### 7.3 질문 그래프 노드 계약
+### AI 담당 완료 기준
 
-| 노드 | 입력 | 출력 |
-|---|---|---|
-| `startSession` | 없음 | 초기 state 생성 |
-| `loadQuestion` | 현재 index | 현재 질문 반환 |
-| `saveAnswer` | 사용자 응답 | `answers` 갱신 |
-| `checkCompletion` | `answers`, `index` | 종료 여부 판단 |
-| `routeNextQuestion` | 종료 여부 | 다음 질문 index 결정 |
-| `finalizePreferenceTags` | `answers` | `preferenceTags` 생성 |
+- 프롬프트 템플릿이 정리되어 있다.
+- 추천 후보를 입력받아 이유를 포함한 결과를 반환할 수 있다.
+- 재정렬 규칙 또는 LLM 호출 흐름이 문서/코드로 정리되어 있다.
 
-### 7.4 추천 그래프 노드 계약
+### AI 담당이 직접 건드리지 않는 것이 좋은 파일
 
-| 노드 | 입력 | 출력 |
-|---|---|---|
-| `normalizeUserProfile` | `answers`, `preferenceTags` | 표준화 프로필 |
-| `contentBasedRetrieve` | 프로필, `songs.json` | 콘텐츠 점수 후보 |
-| `collaborativeBoost` | 프로필, `users.json` | 협업 점수 보정 후보 |
-| `contextRerank` | 후보, 시간/활동/감정 | 상황 점수 반영 |
-| `mergeScores` | 각 점수 목록 | 최종 정렬 결과 |
-| `llmReasoning` | 상위 N개 후보 | 자연어 추천 이유 |
-| `formatResult` | 후보 + 이유 | UI 출력 모델 |
+- `src/pages/`
+- `src/components/`
+- `src/styles.css`
+- `src/data/songs.json`의 대량 데이터 직접 작성
 
-### 7.5 그래프 흐름
+## 4. QA / 데이터 분석 - 민승님
 
-```text
-questionGraph
-startSession
- -> loadQuestion
- -> saveAnswer
- -> checkCompletion
- -> routeNextQuestion
- -> finalizePreferenceTags
+### 담당 목표
 
-recommendationGraph
-normalizeUserProfile
- -> contentBasedRetrieve
- -> collaborativeBoost
- -> contextRerank
- -> mergeScores
- -> llmReasoning
- -> formatResult
-```
+- 개발 완료 후 테스트 시나리오 운영
+- 정량/정성 데이터 수집
+- 발표용 평가 결과 정리
 
-## 8. 도메인 모델 설계
+### 주 작업 위치
 
-### 8.1 Song 모델
+코드 수정은 많지 않다. 주로 아래를 기준으로 본다.
+
+- `DEV_README.md`
+- `SYSTEM_DESIGN.md`
+- 실제 실행 화면
+
+필요하면 결과 저장용 문서를 별도로 만든다.
+
+### 먼저 할 일
+
+1. 테스트 질문지/설문 문항 정리
+2. 어떤 행동 데이터를 수집할지 정의
+3. 결과 기록 양식 만들기
+
+### 수집 권장 항목
+
+- 질문 중도 이탈 여부
+- 추천 결과 만족도
+- 재추천 요청 여부
+- 좋아요/싫어요 선택 비율
+- 주관식 피드백
+
+### QA 완료 기준
+
+- 테스트 대상자에게 동일하게 적용할 평가 기준이 있다.
+- 결과를 표나 문장으로 발표 자료에 옮길 수 있다.
+
+## 공통 인터페이스
+
+## 1. 공통 타입
+
+아래 파일은 공통 기준이므로 수정 시 공유가 필요하다.
+
+- `src/types/question.ts`
+- `src/types/song.ts`
+- `src/types/user.ts`
+- `src/types/graph.ts`
+
+## 2. 추천 결과 전달 형식
+
+프론트엔드가 최종적으로 받아야 하는 최소 형식은 아래다.
 
 ```ts
-export interface Song {
-  id: string;
+interface RecommendationItem {
+  songId: string;
   title: string;
   artist: string;
-  genre: string;
-  bpm: number;
-  moodTags: string[];
-  activityTags: string[];
-  hasLyrics: boolean;
-  energyLevel: number;
-}
-```
-
-### 8.2 User 모델
-
-```ts
-export interface MockUserProfile {
-  id: string;
-  preferredGenres: string[];
-  preferredMoods: string[];
-  preferredTime: "morning" | "afternoon" | "evening" | "night";
-  likedSongs: string[];
-  skippedSongs: string[];
-}
-```
-
-### 8.3 정규화된 사용자 프로필
-
-```ts
-export interface NormalizedUserProfile {
-  moods: string[];
-  activities: string[];
-  genres: string[];
-  preferredBpmRange?: [number, number];
-  preferredTime?: "morning" | "afternoon" | "evening" | "night";
-  prefersLyrics?: boolean;
-  energyLevel?: number;
-}
-```
-
-### 8.4 스코어링 결과 모델
-
-```ts
-export interface ScoredSong {
-  song: Song;
-  contentScore: number;
-  collaborativeScore: number;
-  contextScore: number;
   finalScore: number;
-  matchedTags: string[];
+  reason: string;
+  scoreBreakdown: {
+    content: number;
+    collaborative: number;
+    context: number;
+  };
 }
 ```
 
-## 9. 추천 로직 설계
+AI/데이터 담당은 최종적으로 이 형태로 넘겨주면 된다.
 
-### 9.1 콘텐츠 기반 점수
+## 3. 질문 응답 형식
 
-기본 계산식은 가중합으로 처리한다.
-
-| 항목 | 조건 | 점수 |
-|---|---|---|
-| 장르 | 정확 일치 | +3 |
-| 분위기 | 태그 일치 1개당 | +2 |
-| 활동 | 태그 일치 1개당 | +2 |
-| BPM | 선호 범위 내 | +2 |
-| 가사 | 선호 일치 | +1 |
-| 에너지 | 선호 차이 작음 | +1 |
-
-### 9.2 협업 필터링 점수
-
-간단한 목업 단계에서는 아래 방식으로 구현한다.
-
-1. 현재 프로필과 각 가상 사용자 사이 유사도 계산
-2. 상위 유사 사용자 3명을 선택
-3. 그들이 좋아한 곡에 가산점 부여
-4. 그들이 자주 스킵한 곡은 감점
-
-예시 수식:
+질문 응답은 아래 구조를 유지한다.
 
 ```ts
-collaborativeScore = similaritySumOfUsersWhoLikedSong - similaritySumOfUsersWhoSkippedSong;
-```
-
-### 9.3 상황 기반 점수
-
-상황 점수는 규칙 기반으로 처리한다.
-
-| 조건 | 규칙 |
-|---|---|
-| `preferredTime === night` | `calm`, `emotional`, 저BPM 가산 |
-| `activity === study` | `hasLyrics === false` 가산 |
-| `activity === workout` | 고BPM, 고에너지 가산 |
-| `mood === tired` | 잔잔한 곡, 중저에너지 가산 |
-
-### 9.4 최종 점수
-
-```ts
-finalScore =
-  0.5 * contentScore +
-  0.3 * collaborativeScore +
-  0.2 * contextScore;
-```
-
-초기 버전에서는 이 값을 사용하고, 실험 후 조정한다.
-
-## 10. 태그 정규화 설계
-
-### 10.1 정규화 목적
-
-- 질문 답변 표현을 내부 추천 태그로 통일
-- 자유 텍스트 입력을 구조화
-- 추천 함수가 일관된 키를 사용하도록 보장
-
-### 10.2 정규화 방식
-
-1. 객관식 응답은 미리 정의된 태그 매핑 사용
-2. 자유 텍스트는 1차 규칙 기반 사전 매핑
-3. 필요 시 Gemini로 보강 태깅
-
-### 10.3 예시 매핑
-
-| 사용자 표현 | 내부 태그 |
-|---|---|
-| 차분한 | `calm` |
-| 신나는 | `energetic` |
-| 공부 | `study` |
-| 운동 | `workout` |
-| 밤 | `night` |
-| 가사 없는 | `instrumental` |
-
-## 11. Gemini 연동 설계
-
-### 11.1 사용 범위
-
-- 자유 텍스트 응답 태그 추출
-- 최종 추천 이유 생성
-
-### 11.2 비사용 범위
-
-- 전체 추천 순위 결정
-- 모든 곡 후보의 대량 평가
-
-### 11.3 입력/출력 계약
-
-```ts
-export interface ReasoningInput {
-  userProfile: NormalizedUserProfile;
-  songs: Array<{
-    title: string;
-    artist: string;
-    matchedTags: string[];
-    finalScore: number;
-  }>;
+interface AnswerRecord {
+  questionId: string;
+  value: string | string[] | boolean;
+  skipped?: boolean;
 }
 ```
 
-Gemini 출력은 아래 JSON 형태를 기대한다.
+## 충돌 줄이는 파일 소유 기준
 
-```json
-{
-  "recommendations": [
-    {
-      "title": "Midnight Lo-fi",
-      "reason": "밤 시간대와 차분한 분위기에 잘 맞는 곡입니다."
-    }
-  ]
-}
-```
+### 프론트엔드 전용
 
-### 11.4 실패 대응
+- `src/pages/`
+- `src/components/`
+- `src/styles.css`
 
-- Gemini 호출 실패 시 기본 템플릿 문장 사용
-- 추천 자체는 LLM 실패와 무관하게 계속 진행
+### 데이터/추천 전용
 
-## 12. 상태 관리 설계
+- `src/data/`
+- `src/domain/scoring/`
+- `src/domain/recommendation/`
 
-추천 상태 관리는 `Zustand`를 권장한다.
+### AI 전용
 
-이유는 아래와 같다.
+- `src/services/gemini.ts`
+- `src/domain/normalization/`
+- `src/graph/recommendationGraph.ts`
 
-- 질문 진행 상태와 결과 상태를 단순하게 보관 가능
-- 컴포넌트 간 전달이 명확함
-- 로컬 스토리지 연동이 쉽다
+### 공통 조심 구간
 
-### 12.1 Store 예시
+- `src/types/`
+- `src/store/useAppStore.ts`
+- `src/app/App.tsx`
 
-```ts
-export interface AppStore {
-  state: AppGraphState;
-  startSession: () => void;
-  answerQuestion: (payload: AnswerRecord) => void;
-  skipQuestion: (questionId: string) => void;
-  runRecommendation: () => Promise<void>;
-  submitFeedback: (songId: string, value: "like" | "dislike") => void;
-  resetSession: () => void;
-}
-```
+위 파일은 한 명이 먼저 수정하면 다른 사람은 바로 건드리지 말고 맞춘 뒤 수정한다.
 
-## 13. 파일 구조 제안
+## develop 브랜치 작업 순서 권장
 
-```text
-src/
-├─ app/
-│  ├─ App.tsx
-│  ├─ router.tsx
-│  └─ providers.tsx
-├─ pages/
-│  ├─ HomePage.tsx
-│  ├─ QuestionPage.tsx
-│  └─ ResultPage.tsx
-├─ components/
-│  ├─ question/
-│  ├─ result/
-│  └─ common/
-├─ data/
-│  ├─ songs.json
-│  ├─ users.json
-│  └─ questions.ts
-├─ graph/
-│  ├─ questionGraph.ts
-│  ├─ recommendationGraph.ts
-│  └─ nodes/
-├─ domain/
-│  ├─ scoring/
-│  ├─ normalization/
-│  ├─ recommendation/
-│  └─ feedback/
-├─ services/
-│  ├─ gemini.ts
-│  ├─ storage.ts
-│  └─ logger.ts
-├─ store/
-│  └─ useAppStore.ts
-├─ types/
-│  ├─ question.ts
-│  ├─ song.ts
-│  ├─ user.ts
-│  └─ graph.ts
-└─ utils/
-   ├─ constants.ts
-   └─ format.ts
-```
+1. 정은님이 `songs.json`, `users.json`, 점수 함수부터 잡는다.
+2. 조영님이 `gemini.ts`, 정규화, 재정렬 포맷을 잡는다.
+3. 용완님이 질문/로딩/결과 UI를 완성한다.
+4. 마지막에 공통 파일인 `store`, `App`, 타입을 한 번에 맞춘다.
+5. 민승님은 기능이 붙으면 테스트와 평가를 진행한다.
 
-## 14. 로컬 스토리지 설계
+## 지금 당장 각자 시작할 파일
 
-### 저장 항목
-
-- 마지막 세션 답변
-- 최종 추천 결과
-- 피드백 기록
-
-### 키 규칙
-
-```text
-ai-recsys/session
-ai-recsys/results
-ai-recsys/feedback
-```
-
-### 정책
-
-- 세션은 브라우저 새로고침 복구용
-- 추천 결과는 마지막 1회분만 보관
-- 피드백은 배열 형태로 누적
-
-## 15. 예외 처리 설계
-
-| 상황 | 처리 방식 |
-|---|---|
-| 질문 데이터 누락 | 에러 상태 전이 후 기본 안내 표시 |
-| `songs.json` 비어 있음 | 추천 불가 메시지 표시 |
-| Gemini API 실패 | 기본 이유 문장으로 대체 |
-| 태그 정규화 실패 | 원본 답변 기반 최소 추천 수행 |
-| 추천 결과 0건 | 조건 완화 후 재탐색 |
-
-### 추천 결과 0건일 때 완화 순서
-
-1. 장르 제약 완화
-2. BPM 제약 완화
-3. 활동 태그 제약 완화
-4. 인기 기반 또는 랜덤 fallback
-
-## 16. 테스트 설계
-
-### 단위 테스트 대상
-
-- 태그 정규화 함수
-- 콘텐츠 기반 점수 계산
-- 협업 필터링 유사도 계산
-- 상황 기반 재정렬 규칙
-
-### 통합 테스트 대상
-
-- 질문 완료 후 추천 결과 생성 플로우
-- 스킵 포함 질문 플로우
-- Gemini 실패 시 fallback 문구 처리
-
-### 수동 테스트 체크리스트
-
-- 질문 선택 즉시 UI가 반응하는가
-- 진행 바가 정확히 갱신되는가
-- 추천 결과가 3개 이상 안정적으로 나오는가
-- 좋아요/싫어요 입력이 저장되는가
-- 새로고침 후 세션 복원이 가능한가
-
-## 17. 구현 우선순위
-
-### Phase 1: 기본 UI + 질문 플로우
-
-- 페이지 라우팅 구성
-- 질문 데이터 정의
-- 질문 카드 UI 구현
-- 질문 그래프 연결
-
-### Phase 2: 추천 엔진 MVP
-
-- `songs.json`, `users.json` 작성
-- 콘텐츠 기반 점수 계산 구현
-- 협업 필터링 보정 구현
-- 상황 기반 재정렬 구현
-
-### Phase 3: 결과 표현 고도화
-
-- 추천 카드 UI 구현
-- 점수 breakdown 표시
-- 로컬 스토리지 저장
-- 피드백 입력 기능
-
-### Phase 4: Gemini 연동
-
-- 추천 이유 생성 연동
-- 자유 텍스트 태깅 보강
-- fallback 메시지 정비
-
-## 18. 협업 작업 분리 기준
-
-| 담당 영역 | 파일 기준 |
-|---|---|
-| UI | `pages/`, `components/` |
-| 그래프 | `graph/` |
-| 추천 로직 | `domain/scoring/`, `domain/recommendation/` |
-| 데이터 | `data/` |
-| LLM 연동 | `services/gemini.ts` |
-| 상태 관리 | `store/useAppStore.ts` |
-
-## 19. MVP 완료 기준
-
-아래 조건을 만족하면 MVP로 본다.
-
-- 질문 5개 이상이 정상 진행된다.
-- 응답 완료 후 추천 결과가 최소 3곡 표시된다.
-- 각 추천 곡에 추천 이유가 표시된다.
-- 좋아요/싫어요 피드백이 저장된다.
-- 새로고침 후 세션 복원이 가능하다.
-
-## 20. 확장 방향
-
-향후에는 아래 방향으로 확장한다.
-
-- 백엔드 또는 서버리스 함수 도입
-- 실제 사용자 로그 기반 협업 필터링 전환
-- 음악 API 연동
-- 감정 분석 고도화
-- 날씨, 위치, 요일 등 컨텍스트 추가
-- 사용자별 장기 선호 프로필 저장
-
-## 21. 바로 구현할 첫 작업
-
-개발 시작 시 가장 먼저 만들 파일은 아래 순서를 권장한다.
-
-1. `src/types/` 타입 정의
-2. `src/data/questions.ts`
-3. `src/data/songs.json`, `src/data/users.json`
-4. `src/domain/scoring/` 순수 함수
-5. `src/graph/questionGraph.ts`
-6. `src/graph/recommendationGraph.ts`
-7. `src/store/useAppStore.ts`
-8. `src/pages/QuestionPage.tsx`
-9. `src/pages/ResultPage.tsx`
-
-이 순서로 진행하면 UI와 추천 로직을 동시에 검증하기 쉽다.
+- 용완님: `src/pages/QuestionPage.tsx`
+- 정은님: `src/data/songs.json`
+- 조영님: `src/services/gemini.ts`
+- 민승님: 테스트 항목 문서 작성

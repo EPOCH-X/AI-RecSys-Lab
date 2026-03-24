@@ -1,19 +1,32 @@
+"use client"
+
+import { cn } from "@/utils/cn"
+
 interface ProgressBarProps {
-  value: number;
-  max: number;
+  current: number
+  total: number
+  className?: string
 }
 
-export function ProgressBar({ value, max }: ProgressBarProps) {
-  const percentage = Math.max(0, Math.min(100, (value / max) * 100));
+export function ProgressBar({ current, total, className }: ProgressBarProps) {
+  const percentage = (current / total) * 100
 
   return (
-    <div>
-      <div className="progress" aria-hidden="true">
-        <div className="progress__bar" style={{ width: `${percentage}%` }} />
+    <div className={cn("w-full", className)}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm text-muted-foreground">
+          Question {current} of {total}
+        </span>
+        <span className="text-sm font-medium text-primary">
+          {Math.round(percentage)}%
+        </span>
       </div>
-      <div className="progress__label">
-        {value} / {max}
+      <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
+        <div
+          className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
+          style={{ width: `${percentage}%` }}
+        />
       </div>
     </div>
-  );
+  )
 }

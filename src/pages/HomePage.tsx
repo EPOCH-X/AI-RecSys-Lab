@@ -1,35 +1,126 @@
-interface HomePageProps {
-  navigate: (route: "home" | "questions" | "results") => void;
+"use client"
+
+import { ArrowRight, Sparkles, Music2, Brain, MessageCircle } from "lucide-react"
+import { useAppStore } from "@/store/useAppStore"
+import { Button } from "@/components/ui/button"
+
+export function HomePage() {
+  const { setCurrentView, resetAnswers } = useAppStore()
+
+  const handleStart = () => {
+    resetAnswers()
+    setCurrentView("questions")
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      {/* Hero Section */}
+      <main className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+        <div className="max-w-2xl mx-auto text-center space-y-8">
+          {/* Brand */}
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium">
+            <Sparkles className="w-4 h-4" />
+            AI-Powered Music Discovery
+          </div>
+
+          {/* Main headline */}
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-balance">
+            Find Your{" "}
+            <span className="text-primary">Perfect Soundtrack</span>
+          </h1>
+
+          {/* Subheadline */}
+          <p className="text-lg sm:text-xl text-muted-foreground max-w-xl mx-auto text-pretty">
+            Answer a few simple questions about your mood, moment, and taste. 
+            Our AI will find the music that fits you right now.
+          </p>
+
+          {/* CTA */}
+          <div className="pt-4">
+            <Button
+              size="lg"
+              onClick={handleStart}
+              className="px-8 py-6 text-lg rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all"
+            >
+              Start Your Journey
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+          </div>
+
+          {/* Quick stats */}
+          <div className="flex items-center justify-center gap-8 pt-8 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <MessageCircle className="w-4 h-4 text-primary" />
+              <span>5 Questions</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Brain className="w-4 h-4 text-primary" />
+              <span>AI Analysis</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Music2 className="w-4 h-4 text-primary" />
+              <span>Curated Picks</span>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* How it works section */}
+      <section className="border-t border-border bg-card/50">
+        <div className="max-w-5xl mx-auto px-6 py-16">
+          <h2 className="text-2xl font-semibold text-center mb-12">
+            How It Works
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Step 1 */}
+            <div className="text-center space-y-4">
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
+                <MessageCircle className="w-7 h-7 text-primary" />
+              </div>
+              <h3 className="font-semibold text-lg">Answer Questions</h3>
+              <p className="text-muted-foreground text-sm">
+                Tell us about your current mood, what you are doing, and the vibe you want.
+              </p>
+            </div>
+
+            {/* Step 2 */}
+            <div className="text-center space-y-4">
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
+                <Brain className="w-7 h-7 text-primary" />
+              </div>
+              <h3 className="font-semibold text-lg">AI Analyzes</h3>
+              <p className="text-muted-foreground text-sm">
+                Our hybrid recommendation engine matches your preferences with thousands of tracks.
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div className="text-center space-y-4">
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
+                <Sparkles className="w-7 h-7 text-primary" />
+              </div>
+              <h3 className="font-semibold text-lg">Get Recommendations</h3>
+              <p className="text-muted-foreground text-sm">
+                Receive personalized picks with AI-generated explanations for why each track fits you.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-border px-6 py-6">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <Music2 className="w-5 h-5 text-primary" />
+            <span className="font-semibold text-foreground">MoodTune AI</span>
+          </div>
+          <p>Question-based AI music recommendation prototype</p>
+        </div>
+      </footer>
+    </div>
+  )
 }
 
-export function HomePage({ navigate }: HomePageProps) {
-  return (
-    <section className="hero grid grid--2">
-      <article className="hero__card">
-        <span className="eyebrow">AI Music Prototype</span>
-        <h1>Akinator-style music recommendation</h1>
-        <p>
-          질문 기반 인터페이스로 현재 분위기와 상황을 수집하고, 하이브리드 추천 점수와
-          LLM 설명을 결합하는 프론트엔드 프로토타입입니다.
-        </p>
-        <div className="actions">
-          <button className="button" onClick={() => navigate("questions")} type="button">
-            질문 시작
-          </button>
-          <button className="button button--secondary" onClick={() => navigate("results")} type="button">
-            결과 미리보기
-          </button>
-        </div>
-      </article>
-      <aside className="panel">
-        <h2>MVP 범위</h2>
-        <ul className="list">
-          <li>질문 5~7개로 취향과 상황 수집</li>
-          <li>콘텐츠 기반 + 협업 필터링 + 상황 재정렬</li>
-          <li>Gemini 기반 추천 이유 생성</li>
-          <li>로컬 JSON과 localStorage 중심의 실험 구조</li>
-        </ul>
-      </aside>
-    </section>
-  );
-}
+export default HomePage

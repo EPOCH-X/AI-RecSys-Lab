@@ -1,1 +1,2 @@
-
+# This repository currently does not require Python runtime dependencies.
+# Keep this file for future backend or utility additions.

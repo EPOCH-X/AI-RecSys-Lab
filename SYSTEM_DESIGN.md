@@ -348,3 +348,13 @@ interface AnswerRecord {
 - 정은님: `src/data/songs.json`
 - 조영님: `src/services/gemini.ts`
 - 민승님: 테스트 항목 문서 작성
+
+## 변경 이력
+
+### 2026-03-24
+
+- 기존 본문은 유지하고, 현재 프론트엔드 이식 상태만 하단에 기록한다.
+- 프론트엔드 실행 엔트리는 `src/app/page.tsx`, `src/app/layout.tsx`로 동작하지만, 실제 작업 폴더는 기존 분업 원칙을 유지하도록 `src/pages/`, `src/components/common/`, `src/components/question/`, `src/components/result/`, `src/store/`, `src/utils/` 중심으로 맞췄다.
+- 따라서 프론트 담당자는 계속 `src/pages/QuestionPage.tsx`, `src/pages/ResultPage.tsx`, `src/pages/LoadingPage.tsx`, `src/components/common/`, `src/components/question/`, `src/components/result/`, `src/styles.css`, `src/store/useAppStore.ts`를 주 작업 위치로 보면 된다.
+- `src/data/`, `src/domain/`, `src/graph/`, `src/services/`, `src/types/`는 다른 담당 영역 보호를 위해 구조를 유지했다.
+- 공통 조심 구간은 기존과 동일하게 `src/types/`, `src/store/useAppStore.ts`이며, 현재는 `src/app/App.tsx` 대신 `src/app/page.tsx`가 프론트엔드 진입점 역할을 한다.

@@ -1,50 +1,121 @@
-import songs from "../data/songs.json";
-import { RecommendationCard } from "../components/result/RecommendationCard";
+"use client"
 
-interface ResultPageProps {
-  navigate: (route: "home" | "questions" | "results") => void;
-}
+import { Home, RefreshCw, CheckCircle } from "lucide-react"
+import { useAppStore } from "@/store/useAppStore"
+import { RecommendationCard } from "@/components/result/RecommendationCard"
+import { Button } from "@/components/ui/button"
 
-const previewRecommendations = songs.slice(0, 3).map((song, index) => ({
-  songId: song.id,
-  title: song.title,
-  artist: song.artist,
-  finalScore: 8 - index,
-  reason: "현재 선택된 분위기와 활동 태그에 잘 맞는 곡으로 분류되었습니다.",
-  scoreBreakdown: {
-    content: 5 - index,
-    collaborative: 2,
-    context: 1
+export function ResultPage() {
+  const {
+    recommendations,
+    answers,
+    likedSongs,
+    dislikedSongs,
+    toggleLike,
+    toggleDislike,
+    setCurrentView,
+    resetAnswers,
+  } = useAppStore()
+
+  const handleStartOver = () => {
+    resetAnswers()
+    setCurrentView("home")
   }
-}));
 
-export function ResultPage({ navigate }: ResultPageProps) {
+  const handleTryAgain = () => {
+    resetAnswers()
+    setCurrentView("questions")
+  }
+
+  // Generate a summary of user answers
+  const answerSummary = answers
+    .map((a) => `${a.questionTitle}: ${a.skipped ? "Skip" : a.answer}`)
+    .join(" • ")
+
   return (
-    <section className="grid grid--2">
-      <article className="panel">
-        <h2>Recommendation Preview</h2>
-        <div className="recommendation-list">
-          {previewRecommendations.map((item) => (
-            <RecommendationCard key={item.songId} item={item} />
-          ))}
+    <div className="min-h-screen flex flex-col">
+      {/* Header */}
+      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-lg border-b border-border">
+        <div className="max-w-4xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-semibold">Your Recommendations</h1>
+              <p className="text-sm text-muted-foreground">
+                Based on your preferences
+              </p>
+            </div>
+            <Button variant="ghost" size="icon" onClick={handleStartOver}>
+              <Home className="w-5 h-5" />
+              <span className="sr-only">Go home</span>
+            </Button>
+          </div>
         </div>
-        <div className="actions">
-          <button className="button" onClick={() => navigate("questions")} type="button">
-            다시 질문 보기
-          </button>
-          <button className="button button--secondary" onClick={() => navigate("home")} type="button">
-            홈으로
-          </button>
+      </header>
+
+      {/* Results content */}
+      <main className="flex-1 px-6 py-8">
+        <div className="max-w-4xl mx-auto">
+          {/* Answer summary card */}
+          <div className="mb-8 p-4 rounded-xl bg-card border border-border">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <CheckCircle className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="font-medium mb-1">Your Profile</h2>
+                <p className="text-sm text-muted-foreground">{answerSummary}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Recommendation cards */}
+          <div className="space-y-6">
+            {recommendations.map((song, index) => (
+              <RecommendationCard
+                key={song.id}
+                song={song}
+                rank={index + 1}
+                isLiked={likedSongs.includes(song.id)}
+                isDisliked={dislikedSongs.includes(song.id)}
+                onLike={() => toggleLike(song.id)}
+                onDislike={() => toggleDislike(song.id)}
+              />
+            ))}
+          </div>
+
+          {/* Empty state */}
+          {recommendations.length === 0 && (
+            <div className="text-center py-16">
+              <p className="text-muted-foreground mb-4">
+                No recommendations yet. Start by answering some questions!
+              </p>
+              <Button onClick={handleTryAgain}>Start Questionnaire</Button>
+            </div>
+          )}
         </div>
-      </article>
-      <aside className="panel">
-        <h3>현재 결과 상태</h3>
-        <ul className="list">
-          <li>샘플 데이터 기반 미리보기</li>
-          <li>실제 LangGraph 연결 전 단계</li>
-          <li>다음 작업은 질문 응답 상태와 추천 로직 연결</li>
-        </ul>
-      </aside>
-    </section>
-  );
+      </main>
+
+      {/* Footer with actions */}
+      <footer className="border-t border-border px-6 py-6">
+        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="text-sm text-muted-foreground text-center sm:text-left">
+            {likedSongs.length > 0 && (
+              <span>
+                {likedSongs.length} song{likedSongs.length !== 1 && "s"} liked
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={handleTryAgain}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Try Different Answers
+            </Button>
+            <Button onClick={handleStartOver}>Back to Home</Button>
+          </div>
+        </div>
+      </footer>
+    </div>
+  )
 }
+
+export default ResultPage

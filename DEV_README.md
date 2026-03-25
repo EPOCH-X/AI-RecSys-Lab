@@ -529,3 +529,35 @@ VITE_GEMINI_API_KEY=your_api_key
 ```
 
 즉, 이 프로젝트에서 LangGraph는 단순 API 호출 라이브러리가 아니라 추천 시스템의 단계적 의사결정을 제어하는 워크플로우 오케스트레이션 계층으로 사용됩니다.
+
+## 변경 이력
+
+### 2026-03-24 실행 스택 정리
+
+- 기존 본문은 유지하고, 현재 실행 기준만 하단에 추가한다.
+- 현재 프론트엔드 실행 스택은 `Vite` 문서 설명과 달리 `Next.js App Router` 기반으로 동작한다.
+- 다만 팀 분업 충돌을 줄이기 위해 실제 작업 위치는 여전히 `src/pages/`, `src/components/`, `src/store/`, `src/utils/`, `src/data/` 중심으로 유지한다.
+- 실행 엔트리:
+  - `src/app/layout.tsx`
+  - `src/app/page.tsx`
+- 주요 프론트 작업 파일:
+  - `src/pages/HomePage.tsx`
+  - `src/pages/QuestionPage.tsx`
+  - `src/pages/LoadingPage.tsx`
+  - `src/pages/ResultPage.tsx`
+  - `src/store/useAppStore.ts`
+  - `src/styles.css`
+- 개발 서버 실행:
+
+```bash
+npm run dev
+```
+
+- 현재 `package.json`의 `dev` 스크립트는 `next dev`를 사용한다.
+- 타입 확인은 아래 명령으로 진행한다.
+
+```bash
+npm run typecheck
+```
+
+- 데이터/추천/AI 로직 연동 시에는 `src/store/useAppStore.ts`의 `graphState`, `applyRecommendationItems`, `syncAnswersToGraph`, `getAnswerRecords`를 프론트-추천 연결 지점으로 활용하면 된다.

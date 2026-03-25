@@ -1,227 +1,152 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
 :root {
-  font-family: "Segoe UI", "Noto Sans KR", sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color: #18212f;
-  background:
-    radial-gradient(circle at top left, rgba(255, 214, 102, 0.35), transparent 28%),
-    radial-gradient(circle at top right, rgba(82, 182, 154, 0.22), transparent 26%),
-    linear-gradient(180deg, #fffdf7 0%, #f4f7fb 100%);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --background: oklch(0.13 0.01 270);
+  --foreground: oklch(0.98 0 0);
+  --card: oklch(0.18 0.01 270);
+  --card-foreground: oklch(0.98 0 0);
+  --popover: oklch(0.16 0.01 270);
+  --popover-foreground: oklch(0.98 0 0);
+  --primary: oklch(0.72 0.16 25);
+  --primary-foreground: oklch(0.13 0.01 270);
+  --secondary: oklch(0.22 0.02 280);
+  --secondary-foreground: oklch(0.92 0 0);
+  --muted: oklch(0.22 0.02 280);
+  --muted-foreground: oklch(0.65 0 0);
+  --accent: oklch(0.55 0.15 300);
+  --accent-foreground: oklch(0.98 0 0);
+  --destructive: oklch(0.55 0.2 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.28 0.02 270);
+  --input: oklch(0.22 0.02 270);
+  --ring: oklch(0.72 0.16 25);
+  --chart-1: oklch(0.72 0.16 25);
+  --chart-2: oklch(0.65 0.18 180);
+  --chart-3: oklch(0.55 0.15 300);
+  --chart-4: oklch(0.75 0.15 85);
+  --chart-5: oklch(0.60 0.20 350);
+  --radius: 0.75rem;
+  --sidebar: oklch(0.16 0.01 270);
+  --sidebar-foreground: oklch(0.98 0 0);
+  --sidebar-primary: oklch(0.72 0.16 25);
+  --sidebar-primary-foreground: oklch(0.13 0.01 270);
+  --sidebar-accent: oklch(0.22 0.02 280);
+  --sidebar-accent-foreground: oklch(0.98 0 0);
+  --sidebar-border: oklch(0.28 0.02 270);
+  --sidebar-ring: oklch(0.72 0.16 25);
 }
 
-* {
-  box-sizing: border-box;
+.dark {
+  --background: oklch(0.13 0.01 270);
+  --foreground: oklch(0.98 0 0);
+  --card: oklch(0.18 0.01 270);
+  --card-foreground: oklch(0.98 0 0);
+  --popover: oklch(0.16 0.01 270);
+  --popover-foreground: oklch(0.98 0 0);
+  --primary: oklch(0.72 0.16 25);
+  --primary-foreground: oklch(0.13 0.01 270);
+  --secondary: oklch(0.22 0.02 280);
+  --secondary-foreground: oklch(0.92 0 0);
+  --muted: oklch(0.22 0.02 280);
+  --muted-foreground: oklch(0.65 0 0);
+  --accent: oklch(0.55 0.15 300);
+  --accent-foreground: oklch(0.98 0 0);
+  --destructive: oklch(0.55 0.2 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.28 0.02 270);
+  --input: oklch(0.22 0.02 270);
+  --ring: oklch(0.72 0.16 25);
+  --chart-1: oklch(0.72 0.16 25);
+  --chart-2: oklch(0.65 0.18 180);
+  --chart-3: oklch(0.55 0.15 300);
+  --chart-4: oklch(0.75 0.15 85);
+  --chart-5: oklch(0.60 0.20 350);
+  --sidebar: oklch(0.16 0.01 270);
+  --sidebar-foreground: oklch(0.98 0 0);
+  --sidebar-primary: oklch(0.72 0.16 25);
+  --sidebar-primary-foreground: oklch(0.13 0.01 270);
+  --sidebar-accent: oklch(0.22 0.02 280);
+  --sidebar-accent-foreground: oklch(0.98 0 0);
+  --sidebar-border: oklch(0.28 0.02 270);
+  --sidebar-ring: oklch(0.72 0.16 25);
 }
 
-body {
-  margin: 0;
-  min-width: 320px;
+@theme inline {
+  --font-sans: 'Segoe UI', 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+  --font-mono: 'Consolas', 'SFMono-Regular', 'Monaco', monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
 
-button {
-  font: inherit;
-}
-
-#root {
-  min-height: 100vh;
-}
-
-.shell {
-  min-height: 100vh;
-  padding: 32px 20px 48px;
-}
-
-.shell__inner {
-  max-width: 1080px;
-  margin: 0 auto;
-}
-
-.hero {
-  display: grid;
-  gap: 24px;
-  margin-bottom: 28px;
-}
-
-.hero__card,
-.panel {
-  background: rgba(255, 255, 255, 0.84);
-  border: 1px solid rgba(24, 33, 47, 0.08);
-  border-radius: 24px;
-  box-shadow: 0 20px 50px rgba(24, 33, 47, 0.08);
-  backdrop-filter: blur(10px);
-}
-
-.hero__card {
-  padding: 28px;
-}
-
-.eyebrow {
-  display: inline-block;
-  margin-bottom: 12px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: #18212f;
-  color: #fff9ef;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.hero h1,
-.panel h2,
-.panel h3 {
-  margin: 0 0 12px;
-}
-
-.hero p,
-.panel p {
-  margin: 0;
-  color: #455264;
-}
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 20px;
-}
-
-.button {
-  border: 0;
-  border-radius: 14px;
-  padding: 12px 18px;
-  background: #18212f;
-  color: #fff;
-  cursor: pointer;
-}
-
-.button--secondary {
-  background: #e9eef6;
-  color: #18212f;
-}
-
-.grid {
-  display: grid;
-  gap: 20px;
-}
-
-@media (min-width: 900px) {
-  .grid--2 {
-    grid-template-columns: 1.2fr 0.8fr;
+  body {
+    @apply bg-background text-foreground;
   }
 }
 
-.panel {
-  padding: 24px;
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.8;
+  }
 }
 
-.list {
-  margin: 0;
-  padding-left: 18px;
-  color: #455264;
+@keyframes wave {
+  0%, 100% {
+    transform: scaleY(0.5);
+  }
+  50% {
+    transform: scaleY(1);
+  }
 }
 
-.nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 18px;
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
 }
 
-.nav__button {
-  border: 1px solid rgba(24, 33, 47, 0.1);
-  border-radius: 999px;
-  padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.76);
-  cursor: pointer;
-}
-
-.nav__button.is-active {
-  background: #18212f;
-  color: #fff;
-}
-
-.question-card__title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  margin-bottom: 8px;
-}
-
-.question-card__description {
-  color: #5c6a7b;
-  margin-bottom: 16px;
-}
-
-.option-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.chip {
-  border: 1px solid rgba(24, 33, 47, 0.12);
-  border-radius: 999px;
-  padding: 10px 14px;
-  background: #fff;
-}
-
-.progress {
-  width: 100%;
-  height: 10px;
-  border-radius: 999px;
-  background: #e7edf4;
-  overflow: hidden;
-  margin-bottom: 10px;
-}
-
-.progress__bar {
-  height: 100%;
-  background: linear-gradient(90deg, #52b69a, #ffd166);
-}
-
-.progress__label {
-  color: #5c6a7b;
-  font-size: 0.92rem;
-}
-
-.recommendation-list {
-  display: grid;
-  gap: 14px;
-}
-
-.recommendation-card {
-  padding: 18px;
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(244,247,251,0.92));
-  border: 1px solid rgba(24, 33, 47, 0.08);
-}
-
-.recommendation-card__meta {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-
-.recommendation-card__title {
-  font-weight: 700;
-}
-
-.recommendation-card__artist {
-  color: #5c6a7b;
-}
-
-.score-breakdown {
-  margin-top: 10px;
-  color: #5c6a7b;
-  font-size: 0.94rem;
+.animate-wave {
+  animation: wave 1s ease-in-out infinite;
 }

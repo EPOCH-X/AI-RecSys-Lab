@@ -208,7 +208,7 @@ src/
     content: number;
     collaborative: number;
     context: number;
-  };
+  }
 }
 ```
 

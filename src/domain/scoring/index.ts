@@ -1,168 +1,76 @@
 import type { ScoredSong, Song } from "../../types/song";
 import type { NormalizedUserProfile } from "../../types/graph";
-import users from "../../data/users.json";
-import type { MockUserProfile } from "../../types/user";
-
-// “이 노래가 사용자 취향 + 상황에 얼마나 잘 맞는지 점수로 계산하는 함수”
-/*
- * 사용자 취향(profile)과 곡 정보(song)를 비교해서
- * 각 곡의 점수를 계산하는 함수
- *
- * - contentScore: 취향 기반 점수 (장르, mood, 활동)
- * - contextScore: 상황 기반 점수 (bpm, 가사, 에너지)
- * - finalScore: 최종 점수 (둘을 합침)
-노래 1개
-↓
-취향 비교 → contentScore
-↓
-상황 비교 → contextScore
-↓
-합치기 → finalScore
-↓
-결과 반환
- */
-// 두 배열에서 겹치는 항목 개수 세는 함수
-function countOverlap(arr1: string[], arr2: string[]) {
-  return arr1.filter((item) => arr2.includes(item)).length;
-}
-
-// 현재 사용자(profile)와 가상 유저(user)가 얼마나 비슷한지 계산
-/*
-점수 기준:
-장르 겹침: 개당 2점
-mood 겹침: 개당 2점
-시간대 같으면: 1점
-*/
-function getUserSimilarity(
-  profile: NormalizedUserProfile,
-  user: MockUserProfile,
-) {
-  const genreOverlap = countOverlap(profile.genres, user.preferredGenres);
-  const moodOverlap = countOverlap(profile.moods, user.preferredMoods);
-  const timeScore = profile.preferredTime === user.preferredTime ? 1 : 0;
-
-  return genreOverlap * 2 + moodOverlap * 2 + timeScore;
-}
 
 /**
  * 사용자 취향(profile)과 곡 정보(song)를 비교해서
- * 각 곡의 점수를 계산하는 함수
+ * 각 곡의 "기본 취향 점수(contentScore)"를 계산하는 함수
  *
- * - contentScore: 취향 기반 점수 (장르, mood, 활동)
- * - collaborativeScore: 비슷한 유저들이 좋아한 곡 점수
- * - contextScore: 상황 기반 점수 (bpm, 가사, 에너지)
- * - finalScore: 최종 점수
+ * 이 함수에서 하는 일
+ * 1. 장르가 맞는지 확인
+ * 2. mood 태그가 얼마나 겹치는지 확인
+ * 3. activity 태그가 얼마나 겹치는지 확인
+ * 4. 나중에 추천 이유로 쓸 matchedTags 저장
+ *
+ * 이 함수에서 아직 하지 않는 일
+ * - collaborativeScore 계산
+ * - contextScore 계산
+ * - finalScore 정규화 / 가중합
+ *
+ * 위 3가지는 graph 단계에서 후처리로 담당한다.
  */
 export function scoreSongs(
   songs: Song[],
   profile: NormalizedUserProfile,
 ): ScoredSong[] {
   return songs.map((song) => {
-    // 1) 사용자와 겹치는 태그 저장 (추천 이유로 사용됨)
+    // ----------------------------
+    // 1) 사용자와 겹치는 태그 찾기
+    // ----------------------------
+    // 나중에 "왜 이 곡이 추천됐는지" 설명할 때 사용할 수 있다.
     const matchedTags = [
       ...song.moodTags.filter((tag) => profile.moods.includes(tag)),
       ...song.activityTags.filter((tag) => profile.activities.includes(tag)),
     ];
 
     // ----------------------------
-    // 2️) 콘텐츠 기반 점수 (취향)
+    // 2) 장르 점수
     // ----------------------------
-
-    // 장르가 일치하면 +3점
+    // 사용자가 선호하는 장르와 곡 장르가 같으면 +3점
     const genreScore = profile.genres.includes(song.genre) ? 3 : 0;
 
-    // mood 태그 겹치는 개수 × 2점
+    // ----------------------------
+    // 3) mood 점수
+    // ----------------------------
+    // 곡의 moodTags 중 사용자 mood와 겹치는 개수 × 2점
     const moodScore =
       song.moodTags.filter((tag) => profile.moods.includes(tag)).length * 2;
 
-    // 활동 태그 겹치는 개수 × 2점
+    // ----------------------------
+    // 4) activity 점수
+    // ----------------------------
+    // 곡의 activityTags 중 사용자 활동과 겹치는 개수 × 2점
     const activityScore =
       song.activityTags.filter((tag) => profile.activities.includes(tag))
         .length * 2;
 
-    // 콘텐츠 기반 총 점수
+    // ----------------------------
+    // 5) 기본 취향 점수(contentScore)
+    // ----------------------------
     const contentScore = genreScore + moodScore + activityScore;
 
     // ----------------------------
-    // 3️) 상황 기반 점수 (context)
+    // 6) 결과 반환
     // ----------------------------
-
-    // BPM 점수 (템포 범위 안이면 +2점)
-    let bpmScore = 0;
-    if (profile.preferredBpmRange) {
-      const [minBpm, maxBpm] = profile.preferredBpmRange;
-      if (song.bpm >= minBpm && song.bpm <= maxBpm) {
-        bpmScore = 2;
-      }
-    }
-
-    // 가사 유무 점수 (원하는 조건과 같으면 +1점)
-    let lyricsScore = 0;
-    if (profile.prefersLyrics !== undefined) {
-      if (song.hasLyrics === profile.prefersLyrics) {
-        lyricsScore = 1;
-      }
-    }
-
-    // 에너지 레벨 점수 (차이가 적을수록 점수 높음)
-    let energyScore = 0;
-    if (profile.energyLevel !== undefined) {
-      const diff = Math.abs(song.energyLevel - profile.energyLevel);
-
-      if (diff === 0) {
-        energyScore = 2;
-      } else if (diff === 1) {
-        energyScore = 1;
-      }
-    }
-
-    // 상황 기반 총 점수
-    const contextScore = bpmScore + lyricsScore + energyScore;
-    // ----------------------------
-    // 4) 협업 필터링 점수
-    // ----------------------------
-    let collaborativeScore = 0;
-
-    for (const user of users as MockUserProfile[]) {
-      const similarity = getUserSimilarity(profile, user);
-
-      // 비슷한 유저가 이 곡을 좋아하면 similarity만큼 점수 추가
-      if (similarity > 0 && user.likedSongs.includes(song.id)) {
-        collaborativeScore += similarity;
-      }
-
-      // 비슷한 유저가 이 곡을 스킵했으면 약간 감점
-      if (similarity > 0 && user.skippedSongs.includes(song.id)) {
-        collaborativeScore -= 1;
-      }
-    }
-
-    // ----------------------------
-    // 5) 매칭된 조건 태그 추가 (추천 이유 강화)
-    // ----------------------------
-
-    if (bpmScore > 0) matchedTags.push("bpm");
-    if (lyricsScore > 0) matchedTags.push("lyrics");
-    if (energyScore > 0) matchedTags.push("energy");
-    if (collaborativeScore > 0) matchedTags.push("similar-users-liked");
-
-    // ----------------------------
-    // 최종 점수
-    // ----------------------------
-
-    const finalScore = contentScore + collaborativeScore + contextScore;
-
-    // ----------------------------
-    // 결과 반환
-    // ----------------------------
-
+    // collaborativeScore, contextScore는
+    // graph 단계에서 다시 계산할 예정이므로 여기서는 0으로 둔다.
+    // finalScore도 일단 contentScore를 초기값으로 넣어둔다.
     return {
-      song, // 원본 노래 데이터
-      contentScore, // 취향 기반 점수
-      collaborativeScore, //협업 필터링 점수
-      contextScore, // 상황 기반 점수
-      finalScore, // 최종 점수
-      matchedTags, // 추천 이유
+      song,
+      contentScore,
+      collaborativeScore: 0,
+      contextScore: 0,
+      finalScore: contentScore,
+      matchedTags,
     };
   });
 }

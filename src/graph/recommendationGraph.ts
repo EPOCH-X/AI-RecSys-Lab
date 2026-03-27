@@ -1,15 +1,29 @@
 import type { AppGraphState, NormalizedUserProfile, RecommendationItem } from "../types/graph";
 import type { MockUserProfile } from "../types/user";
 import type { ScoredSong, Song } from "../types/song";
-import songsData from "../data/songs.json";
 import usersData from "../data/users.json";
 import { freeTextMoodFromAnswers, normalizeAnswers, preferenceTagsFromProfile } from "../domain/normalization";
 import { scoreSongs } from "../domain/scoring";
 import { toRecommendationItems } from "../domain/recommendation";
 import { enrichProfileWithFreeText, generateReasons } from "../services/gemini";
 
-const songs = songsData as Song[];
 const mockUsers = usersData as MockUserProfile[];
+
+async function fetchCatalogSongs(profile: NormalizedUserProfile): Promise<Song[]> {
+  const res = await fetch("/api/catalog/songs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ profile }),
+  });
+  const data = (await res.json()) as { songs?: Song[]; error?: string };
+  if (!res.ok) {
+    throw new Error(data.error ?? "곡 카탈로그를 불러오지 못했습니다.");
+  }
+  if (!data.songs?.length) {
+    throw new Error(data.error ?? "검색된 곡이 없습니다. 질문 답변을 조정해 보세요.");
+  }
+  return data.songs;
+}
 
 function maxOrOne(values: number[]): number {
   const m = Math.max(...values, 0);
@@ -32,6 +46,12 @@ function similarityToMockUser(profile: NormalizedUserProfile, user: MockUserProf
 
 function applyCollaborativeBoost(scored: ScoredSong[], profile: NormalizedUserProfile): ScoredSong[] {
   if (mockUsers.length === 0) return scored;
+
+  const catalogFromItunes =
+    scored.length > 0 && scored.every((r) => /^\d+$/.test(r.song.id));
+  if (catalogFromItunes) {
+    return scored;
+  }
 
   const best = mockUsers.reduce((acc, u) => {
     const sim = similarityToMockUser(profile, u);
@@ -109,6 +129,7 @@ async function computeRecommendations(state: AppGraphState): Promise<{
   profile = await enrichProfileWithFreeText(profile, freeTextMoodFromAnswers(state.answers));
   const preferenceTags = preferenceTagsFromProfile(profile);
 
+  const songs = await fetchCatalogSongs(profile);
   let scored = scoreSongs(songs, profile);
   scored = applyCollaborativeBoost(scored, profile);
   scored = applyContextScores(scored, profile);

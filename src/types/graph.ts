@@ -24,8 +24,10 @@ export interface RecommendationItem {
   songId: string;
   title: string;
   artist: string;
+  genre?: string;
   finalScore: number;
   reason: string;
+  coverUrl?: string;
   scoreBreakdown: {
     content: number;
     collaborative: number;

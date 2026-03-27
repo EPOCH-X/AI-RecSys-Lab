@@ -18,39 +18,42 @@ import type { NormalizedUserProfile } from "../../types/graph";
  *
  * 위 3가지는 graph 단계에서 후처리로 담당한다.
  */
+function matchesList(tag: string, values: string[]): boolean {
+  const t = tag.toLowerCase();
+  return values.some(
+    (v) =>
+      v.toLowerCase() === t ||
+      t.includes(v.toLowerCase()) ||
+      v.toLowerCase().includes(t),
+  );
+}
+
 export function scoreSongs(
   songs: Song[],
   profile: NormalizedUserProfile,
 ): ScoredSong[] {
   return songs.map((song) => {
-    // ----------------------------
-    // 1) 사용자와 겹치는 태그 찾기
-    // ----------------------------
-    // 나중에 "왜 이 곡이 추천됐는지" 설명할 때 사용할 수 있다.
     const matchedTags = [
-      ...song.moodTags.filter((tag) => profile.moods.includes(tag)),
-      ...song.activityTags.filter((tag) => profile.activities.includes(tag)),
+      ...song.moodTags.filter((tag) => matchesList(tag, profile.moods)),
+      ...song.activityTags.filter((tag) =>
+        matchesList(tag, profile.activities),
+      ),
     ];
 
-    // ----------------------------
-    // 2) 장르 점수
-    // ----------------------------
-    // 사용자가 선호하는 장르와 곡 장르가 같으면 +3점
-    const genreScore = profile.genres.includes(song.genre) ? 3 : 0;
+    const genreScore = profile.genres.some(
+      (g) =>
+        g.toLowerCase() === song.genre.toLowerCase() ||
+        song.genre.toLowerCase().includes(g.toLowerCase()) ||
+        g.toLowerCase().includes(song.genre.toLowerCase()),
+    )
+      ? 3
+      : 0;
 
-    // ----------------------------
-    // 3) mood 점수
-    // ----------------------------
-    // 곡의 moodTags 중 사용자 mood와 겹치는 개수 × 2점
     const moodScore =
-      song.moodTags.filter((tag) => profile.moods.includes(tag)).length * 2;
+      song.moodTags.filter((tag) => matchesList(tag, profile.moods)).length * 2;
 
-    // ----------------------------
-    // 4) activity 점수
-    // ----------------------------
-    // 곡의 activityTags 중 사용자 활동과 겹치는 개수 × 2점
     const activityScore =
-      song.activityTags.filter((tag) => profile.activities.includes(tag))
+      song.activityTags.filter((tag) => matchesList(tag, profile.activities))
         .length * 2;
 
     // ----------------------------

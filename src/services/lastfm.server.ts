@@ -9,7 +9,10 @@
 
 // Last.fm에서 곡의 top tags 가져오는 함수
 export async function getTrackTopTags(track: string, artist: string) {
-  const apiKey = process.env.LASTFM_API_KEY!;
+  const apiKey = process.env.LASTFM_API_KEY?.trim();
+  if (!apiKey) {
+    return [];
+  }
 
   const url =
     `https://ws.audioscrobbler.com/2.0/?method=track.getTopTags` +
@@ -29,6 +32,9 @@ export async function getTrackTopTags(track: string, artist: string) {
   const data = await res.json();
 
   const tagList = data.toptags?.tag ?? [];
+  if (!Array.isArray(tagList)) {
+    return [];
+  }
 
   return tagList.map((tag: any) => ({
     name: tag.name,
@@ -38,9 +44,13 @@ export async function getTrackTopTags(track: string, artist: string) {
 
 // 태그 이름만 문자열 배열로 뽑는 함수
 export async function getTrackTagNames(track: string, artist: string) {
-  const tags = await getTrackTopTags(track, artist);
+  try {
+    const tags = await getTrackTopTags(track, artist);
 
-  return tags
-    .filter((tag: { name: string; count: number }) => tag.count > 0)
-    .map((tag: { name: string; count: number }) => tag.name);
+    return tags
+      .filter((tag: { name: string; count: number }) => tag.count > 0)
+      .map((tag: { name: string; count: number }) => tag.name);
+  } catch {
+    return [];
+  }
 }

@@ -77,10 +77,12 @@ export function toRecommendationItems(
         songId: item.song.id,
         title: item.song.title,
         artist: item.song.artist,
+        genre: item.song.genre,
         finalScore: item.finalScore,
 
         // 곡마다 matchedTags를 보고 추천 이유 생성
         reason: makeReason(item.matchedTags),
+        coverUrl: item.song.coverUrl,
         scoreBreakdown: {
           content: item.contentScore,
           collaborative: item.collaborativeScore,

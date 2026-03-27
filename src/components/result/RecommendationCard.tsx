@@ -37,10 +37,19 @@ export function RecommendationCard({
       </div>
 
       <div className="flex gap-5">
-        {/* Album art placeholder */}
+        {/* Album art */}
         <div className="relative w-24 h-24 rounded-xl bg-secondary flex items-center justify-center shrink-0 overflow-hidden">
-          <Music className="w-10 h-10 text-muted-foreground" />
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+          {song.coverUrl.startsWith("http") ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={song.coverUrl}
+              alt=""
+              className="absolute inset-0 size-full object-cover"
+            />
+          ) : (
+            <Music className="w-10 h-10 text-muted-foreground" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-accent/20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
         </div>
 
         <div className="flex-1 min-w-0">

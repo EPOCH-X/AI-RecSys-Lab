@@ -51,7 +51,10 @@ interface AppState {
   setErrorMessage: (message?: string) => void
   syncQuestionProgress: () => void
   syncAnswersToGraph: () => void
-  applyRecommendationItems: (items: RecommendationItem[]) => void
+  applyRecommendationItems: (
+    items: RecommendationItem[],
+    graphExtras?: Partial<AppGraphState>,
+  ) => void
   getAnswerRecords: () => AnswerRecord[]
 }
 
@@ -66,17 +69,20 @@ function toAnswerRecord(answer: Answer): AnswerRecord {
 }
 
 function createPreviewSongs(items: RecommendationItem[]): PreviewSong[] {
-  return items.map((item) => ({
-    id: item.songId,
-    title: item.title,
-    artist: item.artist,
-    genre: "Recommended",
-    mood: "personalized",
-    energy: Math.round(item.finalScore * 10),
-    coverUrl: "/placeholder.svg",
-    matchScore: Math.round(item.finalScore * 10),
-    reasons: [item.reason]
-  }))
+  return items.map((item) => {
+    const match = Math.min(100, Math.max(0, Math.round(item.finalScore * 10)));
+    return {
+      id: item.songId,
+      title: item.title,
+      artist: item.artist,
+      genre: item.genre ?? "—",
+      mood: "personalized",
+      energy: match,
+      coverUrl: item.coverUrl?.trim() || "/placeholder.svg",
+      matchScore: match,
+      reasons: [item.reason],
+    };
+  });
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -193,12 +199,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         answers: state.answers.map(toAnswerRecord)
       }
     })),
-  applyRecommendationItems: (items) =>
+  applyRecommendationItems: (items, graphExtras) =>
     set((state) => ({
       recommendations: createPreviewSongs(items),
       currentView: "results",
       graphState: {
         ...state.graphState,
+        ...graphExtras,
         finalRecommendations: items,
         sessionStatus: "done",
         errorMessage: undefined

@@ -8,6 +8,8 @@ export interface Song {
   activityTags: string[];
   hasLyrics: boolean;
   energyLevel: number;
+  /** iTunes artwork 등 */
+  coverUrl?: string;
 }
 
 export interface ScoredSong {

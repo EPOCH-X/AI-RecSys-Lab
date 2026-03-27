@@ -1,13 +1,17 @@
 import type { AppGraphState, NormalizedUserProfile, RecommendationItem } from "../types/graph";
 import type { MockUserProfile } from "../types/user";
 import type { ScoredSong, Song } from "../types/song";
+import type { CuratedPlaylist } from "../types/playlist";
 import usersData from "../data/users.json";
+import playlistsData from "../data/playlists.json";
 import { freeTextMoodFromAnswers, normalizeAnswers, preferenceTagsFromProfile } from "../domain/normalization";
+import { applyPlaylistBoost } from "../domain/playlist";
 import { scoreSongs } from "../domain/scoring";
 import { toRecommendationItems } from "../domain/recommendation";
 import { enrichProfileWithFreeText, generateReasons } from "../services/gemini";
 
 const mockUsers = usersData as MockUserProfile[];
+const curatedPlaylists = playlistsData as CuratedPlaylist[];
 
 async function fetchCatalogSongs(profile: NormalizedUserProfile): Promise<Song[]> {
   const res = await fetch("/api/catalog/songs", {
@@ -132,6 +136,7 @@ async function computeRecommendations(state: AppGraphState): Promise<{
   const songs = await fetchCatalogSongs(profile);
   let scored = scoreSongs(songs, profile);
   scored = applyCollaborativeBoost(scored, profile);
+  scored = applyPlaylistBoost(scored, profile, curatedPlaylists);
   scored = applyContextScores(scored, profile);
   scored = mergeFinalScores(scored);
 

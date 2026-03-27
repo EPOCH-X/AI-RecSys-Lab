@@ -6,8 +6,14 @@ const PLACEHOLDER_REASON =
 
 function getGeminiModelCandidates(): string[] {
   const fromEnv = process.env.NEXT_PUBLIC_GEMINI_MODEL?.trim();
-  const fallbacks = ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash"];
-  const ordered = fromEnv ? [fromEnv, ...fallbacks.filter((m) => m !== fromEnv)] : fallbacks;
+  const fallbacks = [
+    "gemini-2.5-flash-lite",
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+  ];
+  const ordered = fromEnv
+    ? [fromEnv, ...fallbacks.filter((m) => m !== fromEnv)]
+    : fallbacks;
   return [...new Set(ordered)];
 }
 
@@ -21,6 +27,37 @@ function getApiKey(): string | undefined {
   return typeof key === "string" && key.trim() ? key.trim() : undefined;
 }
 
+type TempoKeyword = "slow" | "mid" | "fast";
+type EnergyKeyword = "low" | "medium" | "high";
+
+interface FreeTextAugmentation {
+  moods?: string[];
+  genres?: string[];
+  activities?: string[];
+  tempo?: TempoKeyword;
+  energy?: EnergyKeyword;
+}
+
+const ALLOWED_MOODS = [
+  "calm",
+  "energetic",
+  "emotional",
+  "comforting",
+  "romantic",
+] as const;
+const ALLOWED_GENRES = [
+  "pop",
+  "r&b",
+  "soul",
+  "acoustic",
+  "lo-fi",
+  "ballad",
+  "indie",
+] as const;
+const ALLOWED_ACTIVITIES = ["study", "workout", "relax", "commute"] as const;
+const ALLOWED_TEMPO = ["slow", "mid", "fast"] as const;
+const ALLOWED_ENERGY = ["low", "medium", "high"] as const;
+
 async function callGeminiJson(prompt: string): Promise<unknown | null> {
   const key = getApiKey();
   if (!key) return null;
@@ -31,8 +68,8 @@ async function callGeminiJson(prompt: string): Promise<unknown | null> {
     generationConfig: {
       temperature: 0.35,
       maxOutputTokens: 1024,
-      responseMimeType: "application/json"
-    }
+      responseMimeType: "application/json",
+    },
   });
 
   try {
@@ -43,7 +80,7 @@ async function callGeminiJson(prompt: string): Promise<unknown | null> {
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body
+        body,
       });
 
       if (res.status === 429) {
@@ -52,7 +89,8 @@ async function callGeminiJson(prompt: string): Promise<unknown | null> {
       }
 
       if (!res.ok) {
-        const retryable = i < models.length - 1 && (res.status === 404 || res.status === 400);
+        const retryable =
+          i < models.length - 1 && (res.status === 404 || res.status === 400);
         if (retryable) continue;
         return null;
       }
@@ -75,66 +113,249 @@ async function callGeminiJson(prompt: string): Promise<unknown | null> {
   }
 }
 
-const MOOD_LEXICON: Array<{ keys: string[]; tag: string }> = [
-  { keys: ["피곤", "지침", "힘들", "burnout", "tired"], tag: "calm" },
-  { keys: ["우울", "슬프", "sad", "melancholic"], tag: "comforting" },
-  { keys: ["신남", "들뜸", "happy", "excited"], tag: "energetic" },
-  { keys: ["집중", "공부", "study", "focus"], tag: "study" },
-  { keys: ["밤", "night", "late"], tag: "night" },
-  { keys: ["잔잔", "조용", "calm", "chill"], tag: "calm" }
-];
+const HEURISTIC_LEXICON = {
+  moods: [
+    {
+      keys: ["잔잔", "조용", "calm", "chill", "tired", "burnout"],
+      tag: "calm",
+    },
+    { keys: ["신남", "들뜸", "upbeat", "excited", "energy"], tag: "energetic" },
+    { keys: ["감성", "슬픔", "sad", "melanch", "emotional"], tag: "emotional" },
+    { keys: ["위로", "포근", "comfort", "heal", "warm"], tag: "comforting" },
+    { keys: ["사랑", "연애", "데이트", "love", "romantic"], tag: "romantic" },
+  ],
+  genres: [
+    { keys: ["pop", "팝"], tag: "pop" },
+    { keys: ["r&b", "rnb", "알앤비"], tag: "r&b" },
+    { keys: ["soul", "소울"], tag: "soul" },
+    { keys: ["acoustic", "어쿠스틱"], tag: "acoustic" },
+    { keys: ["lofi", "lo-fi", "로파이"], tag: "lo-fi" },
+    { keys: ["ballad", "발라드"], tag: "ballad" },
+    { keys: ["indie", "인디"], tag: "indie" },
+  ],
+  activities: [
+    { keys: ["공부", "집중", "study", "focus"], tag: "study" },
+    { keys: ["운동", "헬스", "run", "gym", "workout"], tag: "workout" },
+    { keys: ["쉬", "휴식", "relax", "rest", "chill"], tag: "relax" },
+    { keys: ["출근", "퇴근", "이동", "commute", "drive"], tag: "commute" },
+  ],
+  tempo: [
+    { keys: ["느리", "잔잔", "slow", "ballad"], tag: "slow" },
+    { keys: ["보통", "mid", "medium"], tag: "mid" },
+    { keys: ["빠르", "신나", "fast", "upbeat"], tag: "fast" },
+  ],
+  energy: [
+    { keys: ["낮", "차분", "low energy", "soft"], tag: "low" },
+    { keys: ["중간", "적당", "medium energy"], tag: "medium" },
+    { keys: ["강", "쎄", "high energy", "powerful"], tag: "high" },
+  ],
+} as const;
 
-export function extractMoodTagsHeuristic(freeText: string): string[] {
+function pickAllowed(values: unknown, allowed: readonly string[]): string[] {
+  if (!Array.isArray(values)) return [];
+  return values
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.toLowerCase())
+    .filter(
+      (value, index, arr) =>
+        allowed.includes(value) && arr.indexOf(value) === index,
+    );
+}
+
+function pickSingleAllowed(
+  value: unknown,
+  allowed: readonly string[],
+): string | undefined {
+  return typeof value === "string" && allowed.includes(value.toLowerCase())
+    ? value.toLowerCase()
+    : undefined;
+}
+
+function tempoToRange(tempo?: string): [number, number] | undefined {
+  if (tempo === "slow") return [60, 85];
+  if (tempo === "mid") return [86, 110];
+  if (tempo === "fast") return [111, 160];
+  return undefined;
+}
+
+function energyToLevel(energy?: string): number | undefined {
+  if (energy === "low") return 2;
+  if (energy === "medium") return 3;
+  if (energy === "high") return 5;
+  return undefined;
+}
+
+function extractFreeTextHeuristic(freeText: string): FreeTextAugmentation {
   const lower = freeText.toLowerCase();
-  const out = new Set<string>();
-  for (const { keys, tag } of MOOD_LEXICON) {
-    if (keys.some((k) => lower.includes(k.toLowerCase()) || freeText.includes(k))) out.add(tag);
+  const moods = new Set<string>();
+  const genres = new Set<string>();
+  const activities = new Set<string>();
+  let tempo: TempoKeyword | undefined;
+  let energy: EnergyKeyword | undefined;
+
+  for (const { keys, tag } of HEURISTIC_LEXICON.moods) {
+    if (
+      keys.some(
+        (key) => lower.includes(key.toLowerCase()) || freeText.includes(key),
+      )
+    )
+      moods.add(tag);
   }
-  return [...out];
+
+  for (const { keys, tag } of HEURISTIC_LEXICON.genres) {
+    if (
+      keys.some(
+        (key) => lower.includes(key.toLowerCase()) || freeText.includes(key),
+      )
+    )
+      genres.add(tag);
+  }
+
+  for (const { keys, tag } of HEURISTIC_LEXICON.activities) {
+    if (
+      keys.some(
+        (key) => lower.includes(key.toLowerCase()) || freeText.includes(key),
+      )
+    )
+      activities.add(tag);
+  }
+
+  for (const { keys, tag } of HEURISTIC_LEXICON.tempo) {
+    if (
+      !tempo &&
+      keys.some(
+        (key) => lower.includes(key.toLowerCase()) || freeText.includes(key),
+      )
+    ) {
+      tempo = tag;
+    }
+  }
+
+  for (const { keys, tag } of HEURISTIC_LEXICON.energy) {
+    if (
+      !energy &&
+      keys.some(
+        (key) => lower.includes(key.toLowerCase()) || freeText.includes(key),
+      )
+    ) {
+      energy = tag;
+    }
+  }
+
+  return {
+    moods: [...moods],
+    genres: [...genres],
+    activities: [...activities],
+    tempo,
+    energy,
+  };
 }
 
 export async function enrichProfileWithFreeText(
   profile: NormalizedUserProfile,
-  freeTextRaw?: string
+  freeTextRaw?: string,
 ): Promise<NormalizedUserProfile> {
   const raw = freeTextRaw?.trim();
   if (!raw) return profile;
 
-  const prompt = `You map a user's short Korean or English mood description to mood tags for music recommendation.
-Return ONLY a JSON array of lowercase English tags chosen from this closed set:
-["calm","energetic","emotional","comforting","night","study","bright","steady"]
-Use at most 5 tags. If unclear, return [].
+  const prompt = `You interpret a user's Korean or English free-text music request.
+Return ONLY valid JSON with this exact shape:
+{
+  "moods": string[],
+  "genres": string[],
+  "activities": string[],
+  "tempo": string | null,
+  "energy": string | null
+}
+
+Allowed moods: ["calm","energetic","emotional","comforting","romantic"]
+Allowed genres: ["pop","r&b","soul","acoustic","lo-fi","ballad","indie"]
+Allowed activities: ["study","workout","relax","commute"]
+Allowed tempo: ["slow","mid","fast"]
+Allowed energy: ["low","medium","high"]
+
+Rules:
+- Choose only values from the allowed lists.
+- Use empty arrays when there is no signal.
+- Use null for tempo or energy when unclear.
+- Do not explain anything outside JSON.
 
 User text: ${JSON.stringify(raw)}`;
 
   const parsed = await callGeminiJson(prompt);
-  let tags: string[] = [];
-  if (Array.isArray(parsed)) {
-    tags = parsed.filter((x): x is string => typeof x === "string").map((t) => t.toLowerCase());
-  }
-  if (tags.length === 0) {
-    tags = extractMoodTagsHeuristic(raw);
+  let augmentation: FreeTextAugmentation = {};
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+    const candidate = parsed as Record<string, unknown>;
+    augmentation = {
+      moods: pickAllowed(candidate.moods, ALLOWED_MOODS),
+      genres: pickAllowed(candidate.genres, ALLOWED_GENRES),
+      activities: pickAllowed(candidate.activities, ALLOWED_ACTIVITIES),
+      tempo: pickSingleAllowed(candidate.tempo, ALLOWED_TEMPO) as
+        | TempoKeyword
+        | undefined,
+      energy: pickSingleAllowed(candidate.energy, ALLOWED_ENERGY) as
+        | EnergyKeyword
+        | undefined,
+    };
   }
 
-  const mergedMoods = [...new Set([...profile.moods, ...tags])];
-  return { ...profile, moods: mergedMoods };
+  const hasStructuredSignal =
+    (augmentation.moods?.length ?? 0) > 0 ||
+    (augmentation.genres?.length ?? 0) > 0 ||
+    (augmentation.activities?.length ?? 0) > 0 ||
+    augmentation.tempo !== undefined ||
+    augmentation.energy !== undefined;
+
+  if (!hasStructuredSignal) {
+    augmentation = extractFreeTextHeuristic(raw);
+  }
+
+  const mergedMoods = [
+    ...new Set([...profile.moods, ...(augmentation.moods ?? [])]),
+  ];
+  const mergedGenres = [
+    ...new Set([...profile.genres, ...(augmentation.genres ?? [])]),
+  ];
+  const mergedActivities = [
+    ...new Set([...profile.activities, ...(augmentation.activities ?? [])]),
+  ];
+
+  return {
+    ...profile,
+    moods: mergedMoods,
+    genres: mergedGenres,
+    activities: mergedActivities,
+    preferredBpmRange:
+      profile.preferredBpmRange ?? tempoToRange(augmentation.tempo),
+    energyLevel: profile.energyLevel ?? energyToLevel(augmentation.energy),
+  };
 }
 
-function fallbackReason(item: RecommendationItem, profile: NormalizedUserProfile): string {
+function fallbackReason(
+  item: RecommendationItem,
+  profile: NormalizedUserProfile,
+): string {
   const mood = profile.moods[0] ?? "선호";
   const act = profile.activities[0] ?? "현재 상황";
   return `${mood} 무드와 ${act} 맥락에 맞춰, ${item.title} — ${item.artist} 곡이 점수 상위로 선택되었습니다.`;
 }
 
-function ensureReasons(items: RecommendationItem[], profile: NormalizedUserProfile): RecommendationItem[] {
+function ensureReasons(
+  items: RecommendationItem[],
+  profile: NormalizedUserProfile,
+): RecommendationItem[] {
   return items.map((item) => {
     const reason = item.reason?.trim() ?? "";
     const isPlaceholder = reason.length === 0 || reason === PLACEHOLDER_REASON;
-    return isPlaceholder ? { ...item, reason: fallbackReason(item, profile) } : item;
+    return isPlaceholder
+      ? { ...item, reason: fallbackReason(item, profile) }
+      : item;
   });
 }
 
-export async function generateReasons(input: ReasoningInput): Promise<RecommendationItem[]> {
+export async function generateReasons(
+  input: ReasoningInput,
+): Promise<RecommendationItem[]> {
   const { userProfile, recommendations } = input;
 
   if (!Array.isArray(recommendations) || recommendations.length === 0) {
@@ -150,7 +371,7 @@ export async function generateReasons(input: ReasoningInput): Promise<Recommenda
     title: r.title,
     artist: r.artist,
     finalScore: r.finalScore,
-    scoreBreakdown: r.scoreBreakdown
+    scoreBreakdown: r.scoreBreakdown,
   }));
 
   const prompt = `You are a concise music recommender explaining why each song fits the user.
@@ -171,7 +392,11 @@ Include one object per song in the same order as the input array. Do not change 
   for (const row of parsed) {
     if (row && typeof row === "object" && "songId" in row && "reason" in row) {
       const o = row as { songId: unknown; reason: unknown };
-      if (typeof o.songId === "string" && typeof o.reason === "string" && o.reason.trim()) {
+      if (
+        typeof o.songId === "string" &&
+        typeof o.reason === "string" &&
+        o.reason.trim()
+      ) {
         byId.set(o.songId, o.reason.trim());
       }
     }

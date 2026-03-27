@@ -1,71 +1,72 @@
-import { create } from "zustand"
-import { createInitialGraphState } from "../graph/questionGraph"
+import { create } from "zustand";
+import { createInitialGraphState } from "../graph/questionGraph";
 import type {
   AppGraphState,
   RecommendationItem,
-  SessionStatus
-} from "../types/graph"
-import type { AnswerRecord } from "../types/question"
+  SessionStatus,
+} from "../types/graph";
+import type { AnswerRecord } from "../types/question";
 
 export interface Answer {
-  questionId: string
-  questionTitle: string
-  answer: string
-  skipped?: boolean
+  questionId: string;
+  questionTitle: string;
+  answer: string;
+  displayAnswer?: string;
+  skipped?: boolean;
 }
 
 export interface PreviewSong {
-  id: string
-  title: string
-  artist: string
-  genre: string
-  mood: string
-  energy: number
-  coverUrl: string
-  matchScore: number
-  reasons: string[]
+  id: string;
+  title: string;
+  artist: string;
+  genre: string;
+  mood: string;
+  energy: number;
+  coverUrl: string;
+  matchScore: number;
+  reasons: string[];
 }
 
-type CurrentView = "home" | "questions" | "loading" | "results"
+type CurrentView = "home" | "questions" | "loading" | "results";
 
 interface AppState {
-  currentView: CurrentView
-  setCurrentView: (view: CurrentView) => void
-  currentQuestionIndex: number
-  answers: Answer[]
-  setCurrentQuestionIndex: (index: number) => void
-  addAnswer: (answer: Answer) => void
-  setAnswers: (answers: Answer[]) => void
-  resetAnswers: () => void
-  recommendations: PreviewSong[]
-  setRecommendations: (songs: PreviewSong[]) => void
-  likedSongs: string[]
-  dislikedSongs: string[]
-  toggleLike: (songId: string) => void
-  toggleDislike: (songId: string) => void
+  currentView: CurrentView;
+  setCurrentView: (view: CurrentView) => void;
+  currentQuestionIndex: number;
+  answers: Answer[];
+  setCurrentQuestionIndex: (index: number) => void;
+  addAnswer: (answer: Answer) => void;
+  setAnswers: (answers: Answer[]) => void;
+  resetAnswers: () => void;
+  recommendations: PreviewSong[];
+  setRecommendations: (songs: PreviewSong[]) => void;
+  likedSongs: string[];
+  dislikedSongs: string[];
+  toggleLike: (songId: string) => void;
+  toggleDislike: (songId: string) => void;
 
-  graphState: AppGraphState
-  setGraphState: (nextState: AppGraphState) => void
-  patchGraphState: (patch: Partial<AppGraphState>) => void
-  setSessionStatus: (status: SessionStatus) => void
-  setErrorMessage: (message?: string) => void
-  syncQuestionProgress: () => void
-  syncAnswersToGraph: () => void
+  graphState: AppGraphState;
+  setGraphState: (nextState: AppGraphState) => void;
+  patchGraphState: (patch: Partial<AppGraphState>) => void;
+  setSessionStatus: (status: SessionStatus) => void;
+  setErrorMessage: (message?: string) => void;
+  syncQuestionProgress: () => void;
+  syncAnswersToGraph: () => void;
   applyRecommendationItems: (
     items: RecommendationItem[],
     graphExtras?: Partial<AppGraphState>,
-  ) => void
-  getAnswerRecords: () => AnswerRecord[]
+  ) => void;
+  getAnswerRecords: () => AnswerRecord[];
 }
 
-const initialGraphState = createInitialGraphState()
+const initialGraphState = createInitialGraphState();
 
 function toAnswerRecord(answer: Answer): AnswerRecord {
   return {
     questionId: answer.questionId,
     value: answer.answer,
-    skipped: answer.skipped
-  }
+    skipped: answer.skipped,
+  };
 }
 
 function createPreviewSongs(items: RecommendationItem[]): PreviewSong[] {
@@ -95,35 +96,37 @@ export const useAppStore = create<AppState>((set, get) => ({
       currentQuestionIndex: index,
       graphState: {
         ...state.graphState,
-        currentQuestionIndex: index
-      }
-    }))
+        currentQuestionIndex: index,
+      },
+    }));
   },
   addAnswer: (answer) =>
     set((state) => {
       const existingIndex = state.answers.findIndex(
-        (item) => item.questionId === answer.questionId
-      )
+        (item) => item.questionId === answer.questionId,
+      );
       const nextAnswers =
         existingIndex >= 0
-          ? state.answers.map((item, index) => (index === existingIndex ? answer : item))
-          : [...state.answers, answer]
+          ? state.answers.map((item, index) =>
+              index === existingIndex ? answer : item,
+            )
+          : [...state.answers, answer];
 
       return {
         answers: nextAnswers,
         graphState: {
           ...state.graphState,
-          answers: nextAnswers.map(toAnswerRecord)
-        }
-      }
+          answers: nextAnswers.map(toAnswerRecord),
+        },
+      };
     }),
   setAnswers: (answers) =>
     set((state) => ({
       answers,
       graphState: {
         ...state.graphState,
-        answers: answers.map(toAnswerRecord)
-      }
+        answers: answers.map(toAnswerRecord),
+      },
     })),
   resetAnswers: () =>
     set({
@@ -135,8 +138,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       dislikedSongs: [],
       graphState: {
         ...createInitialGraphState(),
-        sessionStatus: "idle"
-      }
+        sessionStatus: "idle",
+      },
     }),
   recommendations: [],
   setRecommendations: (songs) => set({ recommendations: songs }),
@@ -147,57 +150,57 @@ export const useAppStore = create<AppState>((set, get) => ({
       likedSongs: state.likedSongs.includes(songId)
         ? state.likedSongs.filter((id) => id !== songId)
         : [...state.likedSongs, songId],
-      dislikedSongs: state.dislikedSongs.filter((id) => id !== songId)
+      dislikedSongs: state.dislikedSongs.filter((id) => id !== songId),
     })),
   toggleDislike: (songId) =>
     set((state) => ({
       dislikedSongs: state.dislikedSongs.includes(songId)
         ? state.dislikedSongs.filter((id) => id !== songId)
         : [...state.dislikedSongs, songId],
-      likedSongs: state.likedSongs.filter((id) => id !== songId)
+      likedSongs: state.likedSongs.filter((id) => id !== songId),
     })),
 
   graphState: initialGraphState,
   setGraphState: (nextState) =>
     set({
       graphState: nextState,
-      currentQuestionIndex: nextState.currentQuestionIndex
+      currentQuestionIndex: nextState.currentQuestionIndex,
     }),
   patchGraphState: (patch) =>
     set((state) => ({
       graphState: {
         ...state.graphState,
-        ...patch
-      }
+        ...patch,
+      },
     })),
   setSessionStatus: (status) =>
     set((state) => ({
       graphState: {
         ...state.graphState,
-        sessionStatus: status
-      }
+        sessionStatus: status,
+      },
     })),
   setErrorMessage: (message) =>
     set((state) => ({
       graphState: {
         ...state.graphState,
         errorMessage: message,
-        sessionStatus: message ? "error" : state.graphState.sessionStatus
-      }
+        sessionStatus: message ? "error" : state.graphState.sessionStatus,
+      },
     })),
   syncQuestionProgress: () =>
     set((state) => ({
       graphState: {
         ...state.graphState,
-        currentQuestionIndex: state.currentQuestionIndex
-      }
+        currentQuestionIndex: state.currentQuestionIndex,
+      },
     })),
   syncAnswersToGraph: () =>
     set((state) => ({
       graphState: {
         ...state.graphState,
-        answers: state.answers.map(toAnswerRecord)
-      }
+        answers: state.answers.map(toAnswerRecord),
+      },
     })),
   applyRecommendationItems: (items, graphExtras) =>
     set((state) => ({
@@ -208,8 +211,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         ...graphExtras,
         finalRecommendations: items,
         sessionStatus: "done",
-        errorMessage: undefined
-      }
+        errorMessage: undefined,
+      },
     })),
-  getAnswerRecords: () => get().answers.map(toAnswerRecord)
-}))
+  getAnswerRecords: () => get().answers.map(toAnswerRecord),
+}));

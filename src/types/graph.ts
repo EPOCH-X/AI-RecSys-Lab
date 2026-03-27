@@ -1,6 +1,5 @@
 import type { AnswerRecord } from "./question";
 import type { ScoredSong } from "./song";
-import type { PreferredTime } from "./user";
 
 export type SessionStatus =
   | "idle"
@@ -15,8 +14,6 @@ export interface NormalizedUserProfile {
   activities: string[];
   genres: string[];
   preferredBpmRange?: [number, number];
-  preferredTime?: PreferredTime;
-  prefersLyrics?: boolean;
   energyLevel?: number;
 }
 

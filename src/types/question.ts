@@ -5,8 +5,6 @@ export type QuestionMapTarget =
   | "activity"
   | "genre"
   | "tempo"
-  | "time"
-  | "lyrics"
   | "energy";
 
 export interface QuestionOption {

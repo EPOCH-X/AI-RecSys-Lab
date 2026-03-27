@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { Home, RefreshCw, CheckCircle } from "lucide-react"
-import { useAppStore } from "@/store/useAppStore"
-import { RecommendationCard } from "@/components/result/RecommendationCard"
-import { Button } from "@/components/ui/button"
+import { Home, RefreshCw, CheckCircle } from "lucide-react";
+import { useAppStore } from "@/store/useAppStore";
+import { RecommendationCard } from "@/components/result/RecommendationCard";
+import { Button } from "@/components/ui/button";
 
 export function ResultPage() {
   const {
@@ -15,22 +15,25 @@ export function ResultPage() {
     toggleDislike,
     setCurrentView,
     resetAnswers,
-  } = useAppStore()
+  } = useAppStore();
 
   const handleStartOver = () => {
-    resetAnswers()
-    setCurrentView("home")
-  }
+    resetAnswers();
+    setCurrentView("home");
+  };
 
   const handleTryAgain = () => {
-    resetAnswers()
-    setCurrentView("questions")
-  }
+    resetAnswers();
+    setCurrentView("questions");
+  };
 
   // Generate a summary of user answers
   const answerSummary = answers
-    .map((a) => `${a.questionTitle}: ${a.skipped ? "Skip" : a.answer}`)
-    .join(" • ")
+    .map(
+      (a) =>
+        `${a.questionTitle}: ${a.skipped ? "Skip" : (a.displayAnswer ?? a.answer)}`,
+    )
+    .join(" • ");
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -115,7 +118,7 @@ export function ResultPage() {
         </div>
       </footer>
     </div>
-  )
+  );
 }
 
-export default ResultPage
+export default ResultPage;

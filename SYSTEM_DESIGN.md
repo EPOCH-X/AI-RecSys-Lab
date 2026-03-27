@@ -138,7 +138,7 @@ src/
 ### 작업 내용
 
 - `songs.json`에 곡 50~100개 수준으로 메타데이터를 채운다.
-- 각 곡에는 `genre`, `bpm`, `moodTags`, `activityTags`, `hasLyrics`, `energyLevel`을 넣는다.
+- 각 곡에는 `genre`, `bpm`, `moodTags`, `activityTags`, `hasLyrics`, `energyLevel`을 넣는다. -> 오픈API 까보면 json
 - `users.json`에 가상 사용자 선호도와 `likedSongs`, `skippedSongs`를 넣는다.
 - 콘텐츠 기반 점수 함수를 구현한다.
 - 협업 필터링용 유사도 계산 또는 간단한 가중치 로직을 구현한다.

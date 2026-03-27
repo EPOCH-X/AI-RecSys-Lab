@@ -21,8 +21,9 @@ const ACTIVITY_HINTS: Record<string, string[]> = {
 const MOOD_KEYWORDS: [RegExp, string][] = [
   [/chill|calm|mellow|ambient|slow/i, "calm"],
   [/energy|upbeat|dance|party|happy|summer/i, "energetic"],
-  [/sad|melanch|emotional|romantic|heart/i, "emotional"],
+  [/sad|melanch|emotional|wistful|blue/i, "emotional"],
   [/comfort|warm|soft|heal/i, "comforting"],
+  [/love|lovesong|romantic|heart|valentine/i, "romantic"],
 ];
 
 function tagsToMoodTags(raw: string[], profileMoods: string[]): string[] {
@@ -37,7 +38,10 @@ function tagsToMoodTags(raw: string[], profileMoods: string[]): string[] {
   return [...out].slice(0, 14);
 }
 
-function tagsToActivityTags(raw: string[], profileActivities: string[]): string[] {
+function tagsToActivityTags(
+  raw: string[],
+  profileActivities: string[],
+): string[] {
   const out = new Set<string>(profileActivities);
   const blob = raw.join(" ").toLowerCase();
   for (const act of ["study", "workout", "relax", "commute"] as const) {
@@ -53,7 +57,7 @@ function estimateBpmAndEnergy(
 ): { bpm: number; energyLevel: number } {
   const t = tags.join(" ").toLowerCase() + genreLabel.toLowerCase();
   let bpm = 100;
-  if (/slow|ballad|ambient|chill|acoustic/.test(t)) bpm = 74;
+  if (/slow|ballad|ambient|chill|acoustic|lofi|lo-fi/.test(t)) bpm = 74;
   if (/fast|punk|hard|drum|techno|edm/.test(t)) bpm = 132;
   if (/medium|pop|indie|r&b|soul/.test(t)) bpm = 96;
   let energyLevel = 3;
@@ -113,6 +117,16 @@ function searchQueriesFromProfile(profile: NormalizedUserProfile): string[] {
   }
   for (const a of profile.activities) {
     q.push(`${a} music ${g0}`);
+  }
+  if (profile.preferredBpmRange) {
+    const [lo, hi] = profile.preferredBpmRange;
+    if (hi <= 85) q.push(`slow ${g0}`);
+    else if (lo >= 111) q.push(`fast ${g0}`);
+    else q.push(`midtempo ${g0}`);
+  }
+  if (profile.energyLevel !== undefined) {
+    if (profile.energyLevel <= 2) q.push(`chill ${g0}`);
+    else if (profile.energyLevel >= 5) q.push(`energetic ${g0}`);
   }
   if (q.length === 0) q.push("chart pop");
   return [...new Set(q)].slice(0, 6);

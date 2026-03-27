@@ -15,12 +15,20 @@ function makeReason(matchedTags: string[]): string {
     reasons.push("차분한 분위기와 잘 맞는 곡");
   }
 
-  if (matchedTags.includes("bright")) {
-    reasons.push("밝은 무드에 어울리는 곡");
+  if (matchedTags.includes("energetic")) {
+    reasons.push("에너지 있는 분위기에 어울리는 곡");
   }
 
   if (matchedTags.includes("emotional")) {
     reasons.push("감성적인 분위기를 잘 살려주는 곡");
+  }
+
+  if (matchedTags.includes("comforting")) {
+    reasons.push("편안하고 위로되는 무드에 잘 맞는 곡");
+  }
+
+  if (matchedTags.includes("romantic")) {
+    reasons.push("로맨틱한 분위기를 살려주는 곡");
   }
 
   // activity 관련
@@ -37,12 +45,8 @@ function makeReason(matchedTags: string[]): string {
   }
 
   // context 관련
-  if (matchedTags.includes("bpm")) {
+  if (matchedTags.includes("tempo")) {
     reasons.push("원하는 템포와 잘 맞는 곡");
-  }
-
-  if (matchedTags.includes("lyrics")) {
-    reasons.push("가사 취향이 반영된 곡");
   }
 
   if (matchedTags.includes("energy")) {

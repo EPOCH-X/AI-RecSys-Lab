@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useRef } from "react"
-import { ArrowLeft, ArrowRight, Send } from "lucide-react"
-import { useAppStore } from "@/store/useAppStore"
-import { questions } from "@/utils/questionView"
-import { ProgressBar } from "@/components/common/ProgressBar"
-import { AnswerChip } from "@/components/question/AnswerChip"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { cn } from "@/utils/cn"
+import { useState, useEffect, useRef } from "react";
+import { ArrowLeft, ArrowRight, Send } from "lucide-react";
+import { useAppStore } from "@/store/useAppStore";
+import { questions } from "@/utils/questionView";
+import { ProgressBar } from "@/components/common/ProgressBar";
+import { AnswerChip } from "@/components/question/AnswerChip";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/utils/cn";
 
 export function QuestionPage() {
   const {
@@ -17,114 +17,117 @@ export function QuestionPage() {
     setCurrentQuestionIndex,
     addAnswer,
     setCurrentView,
-  } = useAppStore()
+  } = useAppStore();
 
-  const [inputValue, setInputValue] = useState("")
-  const [isTransitioning, setIsTransitioning] = useState(false)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const [inputValue, setInputValue] = useState("");
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const currentQuestion = questions[currentQuestionIndex]
-  const totalQuestions = questions.length
-  const isLastQuestion = currentQuestionIndex === totalQuestions - 1
-  const isTextQuestion = currentQuestion?.type === "text"
+  const currentQuestion = questions[currentQuestionIndex];
+  const totalQuestions = questions.length;
+  const isLastQuestion = currentQuestionIndex === totalQuestions - 1;
+  const isTextQuestion = currentQuestion?.type === "text";
 
   // Load existing answer when navigating back
   useEffect(() => {
     const existingAnswer = answers.find(
-      (a) => a.questionId === currentQuestion?.id
-    )
+      (a) => a.questionId === currentQuestion?.id,
+    );
     if (existingAnswer) {
-      setInputValue(existingAnswer.answer)
+      setInputValue(existingAnswer.answer);
     } else {
-      setInputValue("")
+      setInputValue("");
     }
-  }, [currentQuestionIndex, answers, currentQuestion?.id])
+  }, [currentQuestionIndex, answers, currentQuestion?.id]);
 
   // Auto-focus textarea on question change
   useEffect(() => {
     if (textareaRef.current && !isTransitioning) {
-      textareaRef.current.focus()
+      textareaRef.current.focus();
     }
-  }, [currentQuestionIndex, isTransitioning])
+  }, [currentQuestionIndex, isTransitioning]);
 
   const handleSubmit = () => {
-    if (!inputValue.trim()) return
+    if (!inputValue.trim()) return;
 
-    setIsTransitioning(true)
-    
+    setIsTransitioning(true);
+
     addAnswer({
       questionId: currentQuestion.id,
       questionTitle: currentQuestion.text,
       answer: inputValue.trim(),
-    })
+      displayAnswer: inputValue.trim(),
+    });
 
     setTimeout(() => {
       if (isLastQuestion) {
-        setCurrentView("loading")
+        setCurrentView("loading");
       } else {
-        setCurrentQuestionIndex(currentQuestionIndex + 1)
+        setCurrentQuestionIndex(currentQuestionIndex + 1);
       }
-      setIsTransitioning(false)
-    }, 300)
-  }
+      setIsTransitioning(false);
+    }, 300);
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleSubmit()
+      e.preventDefault();
+      handleSubmit();
     }
-  }
+  };
 
   const handleBack = () => {
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(currentQuestionIndex - 1)
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
     } else {
-      setCurrentView("home")
+      setCurrentView("home");
     }
-  }
+  };
 
   const handleSkip = () => {
-    setIsTransitioning(true)
-    
+    setIsTransitioning(true);
+
     addAnswer({
       questionId: currentQuestion.id,
       questionTitle: currentQuestion.text,
       answer: "",
+      displayAnswer: "",
       skipped: true,
-    })
+    });
 
     setTimeout(() => {
       if (isLastQuestion) {
-        setCurrentView("loading")
+        setCurrentView("loading");
       } else {
-        setCurrentQuestionIndex(currentQuestionIndex + 1)
+        setCurrentQuestionIndex(currentQuestionIndex + 1);
       }
-      setIsTransitioning(false)
-    }, 300)
-  }
+      setIsTransitioning(false);
+    }, 300);
+  };
 
   if (!currentQuestion) {
-    return null
+    return null;
   }
 
-  const handleOptionSelect = (_value: string, label: string) => {
-    setIsTransitioning(true)
+  const handleOptionSelect = (value: string, label: string) => {
+    setIsTransitioning(true);
 
     addAnswer({
       questionId: currentQuestion.id,
       questionTitle: currentQuestion.text,
-      answer: label,
-    })
+      answer: value,
+      displayAnswer: label,
+    });
 
     setTimeout(() => {
       if (isLastQuestion) {
-        setCurrentView("loading")
+        setCurrentView("loading");
       } else {
-        setCurrentQuestionIndex(currentQuestionIndex + 1)
+        setCurrentQuestionIndex(currentQuestionIndex + 1);
       }
-      setIsTransitioning(false)
-    }, 300)
-  }
+      setIsTransitioning(false);
+    }, 300);
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -160,7 +163,7 @@ export function QuestionPage() {
               "transition-all duration-300",
               isTransitioning
                 ? "opacity-0 translate-y-4"
-                : "opacity-100 translate-y-0"
+                : "opacity-100 translate-y-0",
             )}
           >
             {/* Question text */}
@@ -212,7 +215,9 @@ export function QuestionPage() {
                       <AnswerChip
                         key={option.id}
                         label={option.label}
-                        onClick={() => handleOptionSelect(option.value, option.label)}
+                        onClick={() =>
+                          handleOptionSelect(option.value, option.label)
+                        }
                       />
                     ))}
                   </div>
@@ -242,12 +247,14 @@ export function QuestionPage() {
             {currentQuestionIndex > 0 && "Press back to edit previous answers"}
           </span>
           <span>
-            {isTextQuestion ? "Press Enter to continue" : "Choose the option that fits best"}
+            {isTextQuestion
+              ? "Press Enter to continue"
+              : "Choose the option that fits best"}
           </span>
         </div>
       </footer>
     </div>
-  )
+  );
 }
 
-export default QuestionPage
+export default QuestionPage;

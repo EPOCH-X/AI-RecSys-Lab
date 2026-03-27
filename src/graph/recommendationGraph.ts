@@ -3,10 +3,8 @@ import type {
   NormalizedUserProfile,
   RecommendationItem,
 } from "../types/graph";
-import type { MockUserProfile } from "../types/user";
 import type { ScoredSong, Song } from "../types/song";
 import type { CuratedPlaylist } from "../types/playlist";
-import usersData from "../data/users.json";
 import playlistsData from "../data/playlists.json";
 import {
   freeTextPreferenceFromAnswers,
@@ -18,7 +16,6 @@ import { scoreSongs } from "../domain/scoring";
 import { toRecommendationItems } from "../domain/recommendation";
 import { enrichProfileWithFreeText, generateReasons } from "../services/gemini";
 
-const mockUsers = usersData as MockUserProfile[];
 const curatedPlaylists = playlistsData as CuratedPlaylist[];
 
 async function fetchCatalogSongs(
@@ -44,54 +41,6 @@ async function fetchCatalogSongs(
 function maxOrOne(values: number[]): number {
   const m = Math.max(...values, 0);
   return m > 0 ? m : 1;
-}
-
-function similarityToMockUser(
-  profile: NormalizedUserProfile,
-  user: MockUserProfile,
-): number {
-  const pg = new Set(profile.genres);
-  const pm = new Set(profile.moods);
-  let s = 0;
-  for (const g of user.preferredGenres) {
-    if (pg.has(g)) s += 2;
-  }
-  for (const m of user.preferredMoods) {
-    if (pm.has(m)) s += 2;
-  }
-  return s;
-}
-
-function applyCollaborativeBoost(
-  scored: ScoredSong[],
-  profile: NormalizedUserProfile,
-): ScoredSong[] {
-  if (mockUsers.length === 0) return scored;
-
-  const catalogFromItunes =
-    scored.length > 0 && scored.every((r) => /^\d+$/.test(r.song.id));
-  if (catalogFromItunes) {
-    return scored;
-  }
-
-  const best = mockUsers.reduce(
-    (acc, u) => {
-      const sim = similarityToMockUser(profile, u);
-      return sim > acc.sim ? { sim, user: u } : acc;
-    },
-    { sim: 0, user: mockUsers[0]! },
-  );
-
-  const liked = new Set(best.user.likedSongs);
-  const skipped = new Set(best.user.skippedSongs);
-
-  return scored.map((row) => {
-    let collaborativeScore = 0;
-    if (liked.has(row.song.id)) collaborativeScore += 4;
-    if (skipped.has(row.song.id)) collaborativeScore -= 2;
-    collaborativeScore += Math.min(best.sim, 3) * 0.5;
-    return { ...row, collaborativeScore };
-  });
 }
 
 function applyContextScores(
@@ -174,7 +123,6 @@ async function computeRecommendations(state: AppGraphState): Promise<{
 
   const songs = await fetchCatalogSongs(profile);
   let scored = scoreSongs(songs, profile);
-  scored = applyCollaborativeBoost(scored, profile);
   scored = applyPlaylistBoost(scored, profile, curatedPlaylists);
   scored = applyContextScores(scored, profile);
   scored = mergeFinalScores(scored);

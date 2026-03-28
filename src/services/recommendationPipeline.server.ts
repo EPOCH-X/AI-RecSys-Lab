@@ -323,6 +323,51 @@ function stage1MusicalScore(
   return { score, matched };
 }
 
+/** 일치한 항목만: 장르 → 분위기 → 템포 → 가수 순 (제목 언급은 뱃지 제외) */
+function buildTasteMatchTags(
+  profile: NormalizedUserProfile,
+  song: Song,
+  matchedKeys: string[],
+): string[] {
+  const keys = new Set(matchedKeys);
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const add = (s: string) => {
+    const t = s.trim();
+    if (t && !seen.has(t)) {
+      seen.add(t);
+      out.push(t);
+    }
+  };
+
+  if (keys.has("genre")) {
+    for (const g of profile.genres) {
+      if (g === song.genre) add(g);
+    }
+  }
+
+  if (keys.has("mood")) {
+    for (const m of profile.moods) {
+      if (song.moodTags.some((t) => t === m)) add(m);
+    }
+  }
+
+  if (keys.has("tempo")) {
+    for (const tp of profile.tempos) {
+      if (song.tempoLabel && tp === song.tempoLabel) add(tp);
+    }
+  }
+
+  if (keys.has("artist")) {
+    const fromProf = profile.favoriteArtists.find((a) =>
+      artistMatches(song.artist, a),
+    );
+    add(fromProf ?? song.artist);
+  }
+
+  return out;
+}
+
 function chartRankBonus(song: Song): number {
   const r = song.chartBestRank;
   if (r == null || r < 1) return 0;
@@ -504,6 +549,7 @@ export async function runRecommendationPipeline(body: RecommendRequestBody): Pro
     finalScore: (r.raw / maxRaw) * 10,
     reason: "",
     fitFactors: buildFitFactors(r),
+    tasteMatchTags: buildTasteMatchTags(profile, r.song, r.matched),
     coverUrl: r.song.coverUrl,
     scoreBreakdown: {
       content: r.stage1,

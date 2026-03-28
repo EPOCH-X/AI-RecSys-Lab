@@ -36,6 +36,8 @@ export interface RecommendationItem {
   reason: string;
   /** 가점 요인 한 줄 요약(큰 가중치 순). API 파이프라인에서 채움 */
   fitFactors?: string[];
+  /** 사용자 입력과 실제로 맞아떨어진 취향 라벨(장르·분위기·템포·가수 등) */
+  tasteMatchTags?: string[];
   coverUrl?: string;
   scoreBreakdown: {
     content: number;

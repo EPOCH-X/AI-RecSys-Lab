@@ -1,5 +1,6 @@
-import type { RecommendationItem } from "../../types/graph";
-import type { ScoredSong } from "../../types/song";
+import type { NormalizedUserProfile, RecommendationItem } from "../../types/graph";
+import type { ScoredSong, Song } from "../../types/song";
+import { SITUATION_OPTIONS } from "../tasteConstants";
 /*
 scoring>index.ts scoreSongs() 함수 결과를 필터링하자...
 finalScore 내림차순 정렬
@@ -67,8 +68,77 @@ function makeReason(matchedTags: string[]): string {
   return reasons.slice(0, 2).join(", ") + "입니다.";
 }
 
+function genresMatchProfileSong(
+  profile: NormalizedUserProfile,
+  song: Song,
+): boolean {
+  return profile.genres.some(
+    (g) =>
+      g.toLowerCase() === song.genre.toLowerCase() ||
+      song.genre.toLowerCase().includes(g.toLowerCase()) ||
+      g.toLowerCase().includes(song.genre.toLowerCase()),
+  );
+}
+
+function genreLabelForBadge(
+  profile: NormalizedUserProfile,
+  song: Song,
+): string {
+  return (
+    profile.genres.find(
+      (g) =>
+        g.toLowerCase() === song.genre.toLowerCase() ||
+        song.genre.toLowerCase().includes(g.toLowerCase()) ||
+        g.toLowerCase().includes(song.genre.toLowerCase()),
+    ) ?? song.genre
+  );
+}
+
+/** 질문naire + scoreSongs 기반: 입력과 맞아떨어진 항목만 뱃지용 */
+function tasteMatchTagsFromQuestionnaire(
+  profile: NormalizedUserProfile,
+  song: Song,
+  matchedTags: string[],
+): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const add = (s: string) => {
+    const t = s.trim();
+    if (t && !seen.has(t)) {
+      seen.add(t);
+      out.push(t);
+    }
+  };
+
+  if (genresMatchProfileSong(profile, song)) {
+    add(genreLabelForBadge(profile, song));
+  }
+
+  for (const tag of matchedTags) {
+    if (tag === "tempo") {
+      const range = profile.preferredBpmRange;
+      if (range) {
+        const [lo, hi] = range;
+        if (hi <= 85) add("느림");
+        else if (lo >= 111) add("빠름");
+        else add("보통");
+      }
+    } else if (tag === "energy") {
+      continue;
+    } else if (song.moodTags.includes(tag)) {
+      add(tag);
+    } else {
+      const sit = SITUATION_OPTIONS.find((s) => s.value === tag);
+      if (sit) add(sit.label);
+    }
+  }
+
+  return out;
+}
+
 export function toRecommendationItems(
   scoredSongs: ScoredSong[],
+  profile: NormalizedUserProfile,
 ): RecommendationItem[] {
   return (
     scoredSongs
@@ -86,6 +156,11 @@ export function toRecommendationItems(
 
         // 곡마다 matchedTags를 보고 추천 이유 생성
         reason: makeReason(item.matchedTags),
+        tasteMatchTags: tasteMatchTagsFromQuestionnaire(
+          profile,
+          item.song,
+          item.matchedTags,
+        ),
         coverUrl: item.song.coverUrl,
         scoreBreakdown: {
           content: item.contentScore,

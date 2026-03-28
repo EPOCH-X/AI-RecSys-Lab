@@ -56,14 +56,18 @@ export function RecommendationCard({
             <p className="text-muted-foreground truncate">{song.artist}</p>
           </div>
 
-          <div className="flex gap-2 mt-3">
-            <span className="px-2 py-1 text-xs rounded-md bg-secondary text-secondary-foreground">
-              {song.genre}
-            </span>
-            <span className="px-2 py-1 text-xs rounded-md bg-secondary text-secondary-foreground">
-              {song.mood}
-            </span>
-          </div>
+          {song.tasteMatchTags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {song.tasteMatchTags.map((tag, i) => (
+                <span
+                  key={`${tag}-${i}`}
+                  className="px-2 py-1 text-xs rounded-md bg-secondary text-secondary-foreground"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

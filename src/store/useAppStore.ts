@@ -20,11 +20,11 @@ export interface PreviewSong {
   id: string;
   title: string;
   artist: string;
-  genre: string;
-  mood: string;
   energy: number;
   coverUrl: string;
   matchScore: number;
+  /** 입력과 일치해 반영된 취향 뱃지(장르·분위기·템포 등) */
+  tasteMatchTags: string[];
   /** 카드에 bullet로 표시 (fitFactors 우선) */
   reasons: string[];
 }
@@ -91,11 +91,10 @@ function createPreviewSongs(items: RecommendationItem[]): PreviewSong[] {
       id: item.songId,
       title: item.title,
       artist: item.artist,
-      genre: item.genre ?? "—",
-      mood: "personalized",
       energy: match,
       coverUrl: item.coverUrl?.trim() || "/placeholder.svg",
       matchScore: match,
+      tasteMatchTags: item.tasteMatchTags?.filter((s) => s.trim()) ?? [],
       reasons,
     };
   });

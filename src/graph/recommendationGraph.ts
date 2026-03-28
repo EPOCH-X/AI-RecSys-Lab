@@ -118,7 +118,7 @@ async function computeRecommendations(state: AppGraphState): Promise<{
   scored = applyContextScores(scored, profile);
   scored = mergeFinalScores(scored);
 
-  let items: RecommendationItem[] = toRecommendationItems(scored);
+  let items: RecommendationItem[] = toRecommendationItems(scored, profile);
   items = await generateReasons({
     userProfile: profile,
     recommendations: items,

@@ -7,6 +7,7 @@ import type {
   NormalizedUserProfile,
   RecommendationItem,
 } from "@/types/graph";
+import type { RecommendRequestBody } from "@/types/recommendRequest";
 import type { ScoredSong } from "@/types/song";
 
 type RecommendApiResponse = {
@@ -16,6 +17,13 @@ type RecommendApiResponse = {
   candidateSongs?: ScoredSong[];
   error?: string;
 };
+
+/** React Strict Mode 이중 effect·빠른 재진입 시 같은 본문이면 fetch 한 번만 */
+const recommendInflight = new Map<string, Promise<RecommendApiResponse>>();
+
+function recommendRequestKey(body: RecommendRequestBody): string {
+  return JSON.stringify(body);
+}
 
 export function LoadingPage() {
   const {
@@ -41,23 +49,37 @@ export function LoadingPage() {
       return;
     }
 
-    recommendationRef.current = (async (): Promise<RecommendApiResponse> => {
-      const res = await fetch("/api/recommend", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(recommendRequest),
-      });
-      const data = (await res.json()) as RecommendApiResponse;
-      if (!res.ok) {
-        return {
-          error:
-            typeof data.error === "string"
-              ? data.error
-              : "추천 요청에 실패했습니다.",
-        };
+    const key = recommendRequestKey(recommendRequest);
+    const existing = recommendInflight.get(key);
+    if (existing) {
+      recommendationRef.current = existing;
+      return;
+    }
+
+    const run = (async (): Promise<RecommendApiResponse> => {
+      try {
+        const res = await fetch("/api/recommend", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(recommendRequest),
+        });
+        const data = (await res.json()) as RecommendApiResponse;
+        if (!res.ok) {
+          return {
+            error:
+              typeof data.error === "string"
+                ? data.error
+                : "추천 요청에 실패했습니다.",
+          };
+        }
+        return data;
+      } finally {
+        recommendInflight.delete(key);
       }
-      return data;
     })();
+
+    recommendInflight.set(key, run);
+    recommendationRef.current = run;
   }, [patchGraphState]);
 
   const handleComplete = () => {

@@ -4,19 +4,14 @@ import type {
   RecommendationItem,
 } from "../types/graph";
 import type { ScoredSong, Song } from "../types/song";
-import type { CuratedPlaylist } from "../types/playlist";
-import playlistsData from "../data/playlists.json";
 import {
   freeTextPreferenceFromAnswers,
   normalizeAnswers,
   preferenceTagsFromProfile,
 } from "../domain/normalization";
-import { applyPlaylistBoost } from "../domain/playlist";
 import { scoreSongs } from "../domain/scoring";
 import { toRecommendationItems } from "../domain/recommendation";
 import { enrichProfileWithFreeText, generateReasons } from "../services/gemini";
-
-const curatedPlaylists = playlistsData as CuratedPlaylist[];
 
 async function fetchCatalogSongs(
   profile: NormalizedUserProfile,
@@ -93,17 +88,14 @@ function applyContextScores(
 
 function mergeFinalScores(scored: ScoredSong[]): ScoredSong[] {
   const c = scored.map((s) => s.contentScore);
-  const col = scored.map((s) => s.collaborativeScore);
   const ctx = scored.map((s) => s.contextScore);
   const maxC = maxOrOne(c);
-  const maxCol = maxOrOne(col.map((x) => Math.max(x, 0)));
   const maxCtx = maxOrOne(ctx.map((x) => Math.max(x, 0)));
 
   return scored.map((row) => {
     const nc = row.contentScore / maxC;
-    const nCol = Math.max(row.collaborativeScore, 0) / maxCol;
     const nCtx = Math.max(row.contextScore, 0) / maxCtx;
-    const blended = 0.5 * nc + 0.3 * nCol + 0.2 * nCtx;
+    const blended = 0.62 * nc + 0.38 * nCtx;
     return { ...row, finalScore: blended * 10 };
   });
 }
@@ -123,7 +115,6 @@ async function computeRecommendations(state: AppGraphState): Promise<{
 
   const songs = await fetchCatalogSongs(profile);
   let scored = scoreSongs(songs, profile);
-  scored = applyPlaylistBoost(scored, profile, curatedPlaylists);
   scored = applyContextScores(scored, profile);
   scored = mergeFinalScores(scored);
 

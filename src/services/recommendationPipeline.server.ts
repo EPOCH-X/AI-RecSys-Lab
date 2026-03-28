@@ -15,7 +15,8 @@ import { callGeminiJson } from "@/services/gemini";
 import { loadCatalogSongsFromJson } from "@/services/songsCatalog.server";
 
 const STAGE1_SHORTLIST = 100;
-const FINAL_N = 5;
+/** 결과 화면에서 1~5, 6~10, 11~15위 구간으로 나눠 보여줌 */
+const FINAL_N = 15;
 
 function situationLabel(value: string): string {
   return SITUATION_OPTIONS.find((s) => s.value === value)?.label ?? value;

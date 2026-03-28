@@ -1,10 +1,7 @@
-import type { AnswerRecord } from "./question";
 import type { ScoredSong } from "./song";
 
 export type SessionStatus =
   | "idle"
-  | "questioning"
-  | "tagging"
   | "recommending"
   | "done"
   | "error";
@@ -47,14 +44,10 @@ export interface RecommendationItem {
 }
 
 export interface AppGraphState {
-  sessionId: string;
   sessionStatus: SessionStatus;
-  currentQuestionIndex: number;
-  answers: AnswerRecord[];
   preferenceTags: string[];
   normalizedProfile: NormalizedUserProfile | null;
   candidateSongs: ScoredSong[];
   finalRecommendations: RecommendationItem[];
-  isSkipped: boolean;
   errorMessage?: string;
 }

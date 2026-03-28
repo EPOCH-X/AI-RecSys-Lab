@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 import { useAppStore } from "@/store/useAppStore";
 import { LoadingAnimation } from "@/components/common/LoadingAnimation";
-import { runRecommendationGraph } from "@/graph/recommendationGraph";
 import type {
   NormalizedUserProfile,
   RecommendationItem,
@@ -23,8 +22,8 @@ export function LoadingPage() {
     applyRecommendationItems,
     patchGraphState,
     setCurrentView,
-    setRecommendations,
     setErrorMessage,
+    clearRecommendationPool,
   } = useAppStore();
 
   const recommendationRef = useRef<Promise<RecommendApiResponse> | null>(
@@ -33,51 +32,39 @@ export function LoadingPage() {
 
   useEffect(() => {
     patchGraphState({ sessionStatus: "recommending" });
-    const { recommendRequest, graphState } = useAppStore.getState();
+    const { recommendRequest } = useAppStore.getState();
 
-    if (recommendRequest) {
-      recommendationRef.current = (async (): Promise<RecommendApiResponse> => {
-        const res = await fetch("/api/recommend", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(recommendRequest),
-        });
-        const data = (await res.json()) as RecommendApiResponse;
-        if (!res.ok) {
-          return {
-            error:
-              typeof data.error === "string"
-                ? data.error
-                : "추천 요청에 실패했습니다.",
-          };
-        }
-        return data;
-      })();
+    if (!recommendRequest) {
+      recommendationRef.current = Promise.resolve({
+        error: "추천 요청 정보가 없습니다. 홈에서 다시 시작해 주세요.",
+      });
       return;
     }
 
-    recommendationRef.current = runRecommendationGraph(graphState).then(
-      (next): RecommendApiResponse => {
-        if (next.sessionStatus === "error") {
-          return {
-            error: next.errorMessage ?? "추천에 실패했습니다.",
-          };
-        }
+    recommendationRef.current = (async (): Promise<RecommendApiResponse> => {
+      const res = await fetch("/api/recommend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(recommendRequest),
+      });
+      const data = (await res.json()) as RecommendApiResponse;
+      if (!res.ok) {
         return {
-          items: next.finalRecommendations,
-          profile: next.normalizedProfile,
-          preferenceTags: next.preferenceTags,
-          candidateSongs: next.candidateSongs,
+          error:
+            typeof data.error === "string"
+              ? data.error
+              : "추천 요청에 실패했습니다.",
         };
-      },
-    );
+      }
+      return data;
+    })();
   }, [patchGraphState]);
 
   const handleComplete = () => {
     const pending = recommendationRef.current;
     if (!pending) {
       setErrorMessage("추천 계산이 시작되지 않았습니다.");
-      setCurrentView("questions");
+      setCurrentView("home");
       return;
     }
 
@@ -88,9 +75,8 @@ export function LoadingPage() {
           setErrorMessage(
             data.error ?? "추천 결과가 비어 있습니다. 입력을 바꿔 다시 시도해 주세요.",
           );
-          setRecommendations([]);
-          const { recommendRequest: req } = useAppStore.getState();
-          setCurrentView(req ? "home" : "questions");
+          clearRecommendationPool();
+          setCurrentView("home");
           return;
         }
         applyRecommendationItems(data.items, {
@@ -104,9 +90,8 @@ export function LoadingPage() {
         setErrorMessage(
           e instanceof Error ? e.message : "추천을 생성하는 중 오류가 났습니다.",
         );
-        setRecommendations([]);
-        const { recommendRequest: req } = useAppStore.getState();
-        setCurrentView(req ? "home" : "questions");
+        clearRecommendationPool();
+        setCurrentView("home");
       }
     })();
   };

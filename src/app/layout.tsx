@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Analytics } from '@vercel/analytics/next'
+import { AmbientBackground } from '@/components/common/AmbientBackground'
 import '../styles.css'
 
 export const metadata: Metadata = {
@@ -32,8 +33,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="font-sans antialiased">
-        {children}
+      <body className="font-sans antialiased min-h-dvh text-foreground">
+        <AmbientBackground />
+        <div className="relative z-10 min-h-dvh">{children}</div>
         <Analytics />
       </body>
     </html>

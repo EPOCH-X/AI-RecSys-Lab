@@ -6,6 +6,7 @@ import type {
   SessionStatus,
 } from "../types/graph";
 import type { AnswerRecord } from "../types/question";
+import type { RecommendRequestBody } from "../types/recommendRequest";
 
 export interface Answer {
   questionId: string;
@@ -24,14 +25,23 @@ export interface PreviewSong {
   energy: number;
   coverUrl: string;
   matchScore: number;
+  /** 카드에 bullet로 표시 (fitFactors 우선) */
   reasons: string[];
 }
 
-type CurrentView = "home" | "questions" | "loading" | "results";
+type CurrentView =
+  | "home"
+  | "simple"
+  | "detailed"
+  | "questions"
+  | "loading"
+  | "results";
 
 interface AppState {
   currentView: CurrentView;
   setCurrentView: (view: CurrentView) => void;
+  recommendRequest: RecommendRequestBody | null;
+  setRecommendRequest: (body: RecommendRequestBody | null) => void;
   currentQuestionIndex: number;
   answers: Answer[];
   setCurrentQuestionIndex: (index: number) => void;
@@ -40,10 +50,6 @@ interface AppState {
   resetAnswers: () => void;
   recommendations: PreviewSong[];
   setRecommendations: (songs: PreviewSong[]) => void;
-  likedSongs: string[];
-  dislikedSongs: string[];
-  toggleLike: (songId: string) => void;
-  toggleDislike: (songId: string) => void;
 
   graphState: AppGraphState;
   setGraphState: (nextState: AppGraphState) => void;
@@ -72,6 +78,15 @@ function toAnswerRecord(answer: Answer): AnswerRecord {
 function createPreviewSongs(items: RecommendationItem[]): PreviewSong[] {
   return items.map((item) => {
     const match = Math.min(100, Math.max(0, Math.round(item.finalScore * 10)));
+    const fromFactors =
+      item.fitFactors?.filter((s) => s.trim().length > 0) ?? [];
+    const reasonText = item.reason?.trim() ?? "";
+    const reasons =
+      fromFactors.length > 0
+        ? fromFactors
+        : reasonText
+          ? [reasonText]
+          : ["선정 요인을 불러오지 못했습니다."];
     return {
       id: item.songId,
       title: item.title,
@@ -81,7 +96,7 @@ function createPreviewSongs(items: RecommendationItem[]): PreviewSong[] {
       energy: match,
       coverUrl: item.coverUrl?.trim() || "/placeholder.svg",
       matchScore: match,
-      reasons: [item.reason],
+      reasons,
     };
   });
 }
@@ -89,6 +104,8 @@ function createPreviewSongs(items: RecommendationItem[]): PreviewSong[] {
 export const useAppStore = create<AppState>((set, get) => ({
   currentView: "home",
   setCurrentView: (view) => set({ currentView: view }),
+  recommendRequest: null,
+  setRecommendRequest: (body) => set({ recommendRequest: body }),
   currentQuestionIndex: 0,
   answers: [],
   setCurrentQuestionIndex: (index) => {
@@ -134,8 +151,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       currentQuestionIndex: 0,
       answers: [],
       recommendations: [],
-      likedSongs: [],
-      dislikedSongs: [],
+      recommendRequest: null,
       graphState: {
         ...createInitialGraphState(),
         sessionStatus: "idle",
@@ -143,22 +159,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     }),
   recommendations: [],
   setRecommendations: (songs) => set({ recommendations: songs }),
-  likedSongs: [],
-  dislikedSongs: [],
-  toggleLike: (songId) =>
-    set((state) => ({
-      likedSongs: state.likedSongs.includes(songId)
-        ? state.likedSongs.filter((id) => id !== songId)
-        : [...state.likedSongs, songId],
-      dislikedSongs: state.dislikedSongs.filter((id) => id !== songId),
-    })),
-  toggleDislike: (songId) =>
-    set((state) => ({
-      dislikedSongs: state.dislikedSongs.includes(songId)
-        ? state.dislikedSongs.filter((id) => id !== songId)
-        : [...state.dislikedSongs, songId],
-      likedSongs: state.likedSongs.filter((id) => id !== songId),
-    })),
 
   graphState: initialGraphState,
   setGraphState: (nextState) =>

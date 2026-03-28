@@ -58,7 +58,7 @@ const ALLOWED_ACTIVITIES = ["study", "workout", "relax", "commute"] as const;
 const ALLOWED_TEMPO = ["slow", "mid", "fast"] as const;
 const ALLOWED_ENERGY = ["low", "medium", "high"] as const;
 
-async function callGeminiJson(prompt: string): Promise<unknown | null> {
+export async function callGeminiJson(prompt: string): Promise<unknown | null> {
   const key = getApiKey();
   if (!key) return null;
 
@@ -325,6 +325,9 @@ User text: ${JSON.stringify(raw)}`;
     moods: mergedMoods,
     genres: mergedGenres,
     activities: mergedActivities,
+    tempos: profile.tempos,
+    favoriteArtists: profile.favoriteArtists,
+    ageRange: profile.ageRange,
     preferredBpmRange:
       profile.preferredBpmRange ?? tempoToRange(augmentation.tempo),
     energyLevel: profile.energyLevel ?? energyToLevel(augmentation.energy),

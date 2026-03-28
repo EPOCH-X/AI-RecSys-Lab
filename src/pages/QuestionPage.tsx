@@ -239,20 +239,6 @@ export function QuestionPage() {
           </div>
         </div>
       </main>
-
-      {/* Footer hint */}
-      <footer className="border-t border-border px-6 py-4">
-        <div className="max-w-2xl mx-auto flex items-center justify-between text-sm text-muted-foreground">
-          <span>
-            {currentQuestionIndex > 0 && "Press back to edit previous answers"}
-          </span>
-          <span>
-            {isTextQuestion
-              ? "Press Enter to continue"
-              : "Choose the option that fits best"}
-          </span>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -7,23 +7,23 @@ import { cn } from "@/utils/cn"
 const loadingSteps = [
   {
     icon: Brain,
-    text: "Analyzing your preferences...",
-    subtext: "Understanding your mood and taste",
+    text: "취향을 분석하는 중…",
+    subtext: "무드와 입력 내용을 반영하고 있어요",
   },
   {
     icon: Wand2,
-    text: "Finding the perfect matches...",
-    subtext: "Searching through thousands of tracks",
+    text: "잘 맞는 곡을 찾는 중…",
+    subtext: "후보 곡을 살펴보고 있어요",
   },
   {
     icon: Music,
-    text: "Curating your playlist...",
-    subtext: "Selecting the best recommendations",
+    text: "추천 곡을 고르는 중…",
+    subtext: "상위 곡을 선별하고 있어요",
   },
   {
     icon: Sparkles,
-    text: "Generating insights...",
-    subtext: "Creating personalized explanations",
+    text: "마무리하는 중…",
+    subtext: "선정 이유를 정리하고 있어요",
   },
 ]
 
@@ -113,7 +113,7 @@ export function LoadingAnimation({ onComplete }: LoadingAnimationProps) {
           />
         </div>
         <p className="text-center text-sm text-muted-foreground mt-2">
-          {progress}% complete
+          {progress}% 완료
         </p>
       </div>
 

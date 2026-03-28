@@ -1,5 +1,6 @@
 import type { AnswerRecord } from "../../types/question";
 import type { NormalizedUserProfile } from "../../types/graph";
+import { SITUATION_OPTIONS } from "../tasteConstants";
 
 function bpmRangeFromTempo(
   value: string | string[] | boolean | undefined,
@@ -37,6 +38,9 @@ export function normalizeAnswers(
     moods: typeof mood === "string" ? [mood] : [],
     activities: typeof activity === "string" ? [activity] : [],
     genres: typeof genre === "string" ? [genre] : [],
+    tempos: [],
+    favoriteArtists: [],
+    ageRange: "",
     preferredBpmRange: bpmRangeFromTempo(tempo),
     energyLevel: energyLevelFromValue(energy),
   };
@@ -62,7 +66,10 @@ export function preferenceTagsFromProfile(
     ...profile.moods,
     ...profile.activities,
     ...profile.genres,
+    ...profile.tempos,
+    ...profile.favoriteArtists,
   ];
+  if (profile.ageRange) fromLists.push(profile.ageRange);
   const extras: string[] = [];
   if (profile.preferredBpmRange) {
     const [lo, hi] = profile.preferredBpmRange;
@@ -76,4 +83,36 @@ export function preferenceTagsFromProfile(
     else extras.push("medium_energy");
   }
   return [...new Set([...fromLists, ...extras])];
+}
+
+/** 질문 플로우 없이 API로만 추천받은 경우 결과 화면 요약 */
+export function formatRecommendationProfileSummary(
+  profile: NormalizedUserProfile | null,
+  fallbackTags: string[],
+): string {
+  if (!profile) {
+    return fallbackTags.length > 0
+      ? fallbackTags.join(" · ")
+      : "저장된 취향 요약이 없습니다.";
+  }
+  const parts: string[] = [];
+  if (profile.genres.length) parts.push(`장르 ${profile.genres.join(", ")}`);
+  if (profile.moods.length) parts.push(`분위기 ${profile.moods.join(", ")}`);
+  if (profile.tempos.length) parts.push(`템포 ${profile.tempos.join(", ")}`);
+  if (profile.favoriteArtists.length) {
+    parts.push(`가수 ${profile.favoriteArtists.join(", ")}`);
+  }
+  if (profile.ageRange) parts.push(`연령 ${profile.ageRange}`);
+  const sit = SITUATION_OPTIONS.find((x) => x.value === profile.activities[0]);
+  if (sit) parts.push(`상황 ${sit.label}`);
+  if (profile.narrative?.trim()) {
+    const t = profile.narrative.trim();
+    parts.push(
+      t.length > 100 ? `요청 ${t.slice(0, 100)}…` : `요청 ${t}`,
+    );
+  }
+  if (parts.length === 0 && fallbackTags.length > 0) {
+    return fallbackTags.join(" · ");
+  }
+  return parts.length > 0 ? parts.join(" · ") : "프로필 요약 없음";
 }

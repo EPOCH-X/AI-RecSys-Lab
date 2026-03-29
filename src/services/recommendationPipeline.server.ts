@@ -18,6 +18,15 @@ const STAGE1_SHORTLIST = 100;
 /** 결과 화면에서 1~5, 6~10, 11~15위 구간으로 나눠 보여줌 */
 const FINAL_N = 15;
 
+/** 프로필 장르와 불일치 시 가점(제목·가수 명시 없을 때만) */
+const GENRE_MISMATCH_PENALTY = -78;
+/** 1단계: 곡 JSON 무드 일치 가점(LLM 분위기·상황 비중 확대를 위해 낮춤) */
+const MOOD_MATCH_POINTS = 2;
+const LLM_DELTA_MIN = -10;
+const LLM_DELTA_MAX = 10;
+/** Top N에서 동일 가수(정규화 키) 최대 곡 수 — 4곡째부터 제외 */
+const MAX_SONGS_PER_ARTIST = 3;
+
 function situationLabel(value: string): string {
   return SITUATION_OPTIONS.find((s) => s.value === value)?.label ?? value;
 }
@@ -264,6 +273,79 @@ function artistMatches(songArtist: string, needle: string): boolean {
   return n.length >= 1 && (a === n || a.includes(n));
 }
 
+/** 동일 가수 캡용 키 */
+function artistNormKey(artist: string): string {
+  const t = artist.trim().toLowerCase().replace(/\s+/g, " ");
+  return t || "__unknown_artist__";
+}
+
+/**
+ * 장르 강제 규칙 예외: 가수를 명시했거나(프로필·문장), 문장에 곡 제목이 들어간 경우.
+ */
+function genreIntentException(
+  song: Song,
+  profile: NormalizedUserProfile,
+  narrative?: string,
+): boolean {
+  if (profile.favoriteArtists.some((a) => artistMatches(song.artist, a))) {
+    return true;
+  }
+  const nar = narrative?.trim();
+  if (!nar || nar.length < 2) return false;
+  if (song.title.trim().length >= 2 && nar.includes(song.title)) {
+    return true;
+  }
+  if (song.artist.trim().length >= 2) {
+    const compactN = nar.replace(/\s+/g, "");
+    const compactA = song.artist.replace(/\s+/g, "");
+    if (compactN.includes(compactA)) return true;
+  }
+  return false;
+}
+
+function ageTierFromRange(ageRange: string): number {
+  const t = ageRange.trim();
+  if (t === "10대") return 0;
+  if (t === "20대") return 1;
+  if (t === "30대") return 2;
+  if (t === "40대") return 3;
+  if (t === "50대 이상") return 4;
+  return 1;
+}
+
+/**
+ * 연령대가 높을수록, 차트 연도가 최근인 곡에 완만한 감점.
+ * (카탈로그의 chart.year 사용; 없으면 0)
+ */
+function ageRecencyPenalty(song: Song, ageRange: string): number {
+  const y = song.chartYear;
+  if (y == null || y < 1) return 0;
+  const tier = ageTierFromRange(ageRange);
+  if (tier < 2) return 0;
+  const currentYear = new Date().getFullYear();
+  if (y < currentYear - 2) return 0;
+  return -(tier - 1) * 2;
+}
+
+/** raw 내림차순 정렬된 행에서 가수당 max곡만 넣어 targetN개 채움 */
+function pickTopWithArtistCap(
+  sortedByRawDesc: ScoredRow[],
+  targetN: number,
+  maxPerArtist: number,
+): ScoredRow[] {
+  const counts = new Map<string, number>();
+  const out: ScoredRow[] = [];
+  for (const row of sortedByRawDesc) {
+    if (out.length >= targetN) break;
+    const key = artistNormKey(row.song.artist);
+    const c = counts.get(key) ?? 0;
+    if (c >= maxPerArtist) continue;
+    counts.set(key, c + 1);
+    out.push(row);
+  }
+  return out;
+}
+
 function stage1MusicalScore(
   song: Song,
   profile: NormalizedUserProfile,
@@ -281,7 +363,7 @@ function stage1MusicalScore(
 
   for (const m of profile.moods) {
     if (song.moodTags.some((t) => t === m)) {
-      score += 7;
+      score += MOOD_MATCH_POINTS;
       matched.push("mood");
     }
   }
@@ -318,6 +400,13 @@ function stage1MusicalScore(
     if (narrative.includes(song.title)) {
       score += 5;
       matched.push("title_mention");
+    }
+  }
+
+  if (profile.genres.length > 0) {
+    const genreOk = profile.genres.some((g) => g === song.genre);
+    if (!genreOk && !genreIntentException(song, profile, narrative)) {
+      score += GENRE_MISMATCH_PENALTY;
     }
   }
 
@@ -397,7 +486,12 @@ async function llmAgeSituationDeltas(
   const out = new Map<string, number>();
   if (candidates.length === 0) return out;
 
-  const situation = situationLabel(profile.activities[0] ?? "");
+  const situation =
+    profile.activities.length > 0
+      ? profile.activities.map((a) => situationLabel(a)).join(", ")
+      : "(없음)";
+  const moodsStr =
+    profile.moods.length > 0 ? profile.moods.join(", ") : "(없음)";
   const payload = candidates.map((s) => ({
     songId: s.id,
     title: s.title,
@@ -407,9 +501,10 @@ async function llmAgeSituationDeltas(
     tempo: s.tempoLabel ?? null,
   }));
 
-  const prompt = `음악 추천 2차 조정입니다. 후보 곡마다 나이대와 듣는 상황에 얼마나 맞는지 델타 점수를 부여합니다.
+  const prompt = `음악 추천 2차 조정입니다. 후보 곡마다 **연령대·선호 분위기·듣는 상황**에 얼마나 맞는지 델타 점수를 부여합니다. (1단계 규칙 점수는 이미 반영됨 — 여기서는 맥락 보정에 집중)
 
 사용자 연령대: ${profile.ageRange}
+선호 분위기(질문지·서술 반영): ${moodsStr}
 듣는 상황: ${situation}
 
 후보 곡 (JSON):
@@ -418,9 +513,9 @@ ${JSON.stringify(payload)}
 반드시 이 형태의 JSON만 출력:
 { "adjustments": [ { "songId": "<문자열>", "delta": <정수> } ] }
 규칙:
-- delta는 -5 이상 5 이하 정수.
+- delta는 ${LLM_DELTA_MIN} 이상 ${LLM_DELTA_MAX} 이하 정수.
 - 입력의 모든 songId를 정확히 한 번씩 포함.
-- 가사 톤, 에너지, 상황 적합성을 고려.`;
+- 가사 톤, 에너지, 분위기·상황 적합성, 연령대에 어울리는지를 종합해 부여.`;
 
   const parsed = await callGeminiJson(prompt);
   if (!parsed || typeof parsed !== "object") return out;
@@ -435,7 +530,10 @@ ${JSON.stringify(payload)}
       typeof o.delta === "number" && Number.isFinite(o.delta)
         ? Math.round(o.delta)
         : 0;
-    out.set(o.songId, Math.min(5, Math.max(-5, d)));
+    out.set(
+      o.songId,
+      Math.min(LLM_DELTA_MAX, Math.max(LLM_DELTA_MIN, d)),
+    );
   }
 
   for (const s of candidates) {
@@ -450,6 +548,7 @@ type ScoredRow = {
   llmDelta: number;
   chart: number;
   album: number;
+  agePenalty: number;
   raw: number;
   matched: string[];
 };
@@ -472,7 +571,19 @@ function buildFitFactors(row: ScoredRow): string[] {
   if (row.llmDelta > 0) {
     ents.push({
       pri: 45 + row.llmDelta,
-      label: "연령·듣는 상황에 맞게 보정됨",
+      label: "연령·분위기·듣는 상황에 맞게 보정됨",
+    });
+  } else if (row.llmDelta < 0) {
+    ents.push({
+      pri: 35 + row.llmDelta,
+      label: "연령·분위기·듣는 상황 대비 보수적 반영",
+    });
+  }
+
+  if (row.agePenalty < 0) {
+    ents.push({
+      pri: 42 + row.agePenalty,
+      label: "연령대 기준으로 최신 차트 연도 반영 조정",
     });
   }
 
@@ -534,12 +645,22 @@ export async function runRecommendationPipeline(body: RecommendRequestBody): Pro
     const llmDelta = deltas.get(song.id) ?? 0;
     const chart = chartRankBonus(song);
     const album = albumClusterBonus(song, albumCounts);
-    const raw = stage1 + llmDelta + chart + album;
-    return { song, stage1, llmDelta, chart, album, raw, matched };
+    const agePenalty = ageRecencyPenalty(song, profile.ageRange);
+    const raw = stage1 + llmDelta + chart + album + agePenalty;
+    return {
+      song,
+      stage1,
+      llmDelta,
+      chart,
+      album,
+      agePenalty,
+      raw,
+      matched,
+    };
   });
 
   merged.sort((a, b) => b.raw - a.raw);
-  const top = merged.slice(0, FINAL_N);
+  const top = pickTopWithArtistCap(merged, FINAL_N, MAX_SONGS_PER_ARTIST);
   const maxRaw = Math.max(...top.map((r) => r.raw), 1e-6);
 
   const items: RecommendationItem[] = top.map((r) => ({
@@ -555,7 +676,7 @@ export async function runRecommendationPipeline(body: RecommendRequestBody): Pro
     scoreBreakdown: {
       content: r.stage1,
       collaborative: r.llmDelta,
-      context: r.chart + r.album,
+      context: r.chart + r.album + r.agePenalty,
     },
   }));
 

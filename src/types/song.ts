@@ -8,8 +8,14 @@ export interface Song {
   activityTags: string[];
   hasLyrics: boolean;
   energyLevel: number;
-  /** iTunes artwork 등 */
   coverUrl?: string;
+  /** songs.json 차트 메타 — 순위·앨범 가점 등에 사용 */
+  chartYear?: number;
+  chartBestRank?: number;
+  albumId?: string;
+  albumTitle?: string;
+  /** 원본 템포 라벨 (예: 빠름/보통/느림) */
+  tempoLabel?: string;
 }
 
 export interface ScoredSong {

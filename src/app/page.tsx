@@ -2,7 +2,8 @@
 
 import { useAppStore } from "@/store/useAppStore"
 import { HomePage } from "@/pages/HomePage"
-import { QuestionPage } from "@/pages/QuestionPage"
+import { SimpleRecommendPage } from "@/pages/SimpleRecommendPage"
+import { DetailedRecommendPage } from "@/pages/DetailedRecommendPage"
 import { LoadingPage } from "@/pages/LoadingPage"
 import { ResultPage } from "@/pages/ResultPage"
 
@@ -12,7 +13,8 @@ export default function Page() {
   return (
     <>
       {currentView === "home" && <HomePage />}
-      {currentView === "questions" && <QuestionPage />}
+      {currentView === "simple" && <SimpleRecommendPage />}
+      {currentView === "detailed" && <DetailedRecommendPage />}
       {currentView === "loading" && <LoadingPage />}
       {currentView === "results" && <ResultPage />}
     </>

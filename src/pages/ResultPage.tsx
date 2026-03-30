@@ -1,18 +1,21 @@
 "use client";
 
-import { Home, RefreshCw, CheckCircle } from "lucide-react";
-import { useAppStore } from "@/store/useAppStore";
+import { Home, CheckCircle, RefreshCw } from "lucide-react";
+import {
+  useAppStore,
+  getVisibleRecommendations,
+  rankRangeLabel,
+} from "@/store/useAppStore";
 import { RecommendationCard } from "@/components/result/RecommendationCard";
 import { Button } from "@/components/ui/button";
+import { formatRecommendationProfileSummary } from "@/domain/normalization";
 
 export function ResultPage() {
   const {
-    recommendations,
-    answers,
-    likedSongs,
-    dislikedSongs,
-    toggleLike,
-    toggleDislike,
+    recommendationPool,
+    recommendationWindowIndex,
+    cycleRecommendationWindow,
+    graphState,
     setCurrentView,
     resetAnswers,
   } = useAppStore();
@@ -22,18 +25,30 @@ export function ResultPage() {
     setCurrentView("home");
   };
 
-  const handleTryAgain = () => {
-    resetAnswers();
-    setCurrentView("questions");
-  };
+  const visible = getVisibleRecommendations(
+    recommendationPool,
+    recommendationWindowIndex,
+  );
+  const rangeLabel = rankRangeLabel(
+    recommendationWindowIndex,
+    recommendationPool.length,
+  );
+  const rankOffset = recommendationWindowIndex * 5;
 
-  // Generate a summary of user answers
-  const answerSummary = answers
-    .map(
-      (a) =>
-        `${a.questionTitle}: ${a.skipped ? "Skip" : (a.displayAnswer ?? a.answer)}`,
-    )
-    .join(" • ");
+  const answerSummary = formatRecommendationProfileSummary(
+    graphState.normalizedProfile,
+    graphState.preferenceTags,
+  );
+
+  const nextRangeLabel = rankRangeLabel(
+    (recommendationWindowIndex + 1) % 3,
+    recommendationPool.length,
+  );
+
+  const handleCycleRecommendations = () => {
+    cycleRecommendationWindow();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -42,14 +57,16 @@ export function ResultPage() {
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-semibold">Your Recommendations</h1>
+              <h1 className="text-xl font-semibold">추천 결과</h1>
               <p className="text-sm text-muted-foreground">
-                Based on your preferences
+                {recommendationPool.length > 0
+                  ? `입력하신 취향을 반영한 상위 ${recommendationPool.length}곡 중 ${rangeLabel}`
+                  : "추천 목록이 없습니다"}
               </p>
             </div>
             <Button variant="ghost" size="icon" onClick={handleStartOver}>
               <Home className="w-5 h-5" />
-              <span className="sr-only">Go home</span>
+              <span className="sr-only">홈으로</span>
             </Button>
           </div>
         </div>
@@ -65,7 +82,7 @@ export function ResultPage() {
                 <CheckCircle className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h2 className="font-medium mb-1">Your Profile</h2>
+                <h2 className="font-medium mb-1">취향 요약</h2>
                 <p className="text-sm text-muted-foreground">{answerSummary}</p>
               </div>
             </div>
@@ -73,50 +90,41 @@ export function ResultPage() {
 
           {/* Recommendation cards */}
           <div className="space-y-6">
-            {recommendations.map((song, index) => (
+            {visible.map((song, index) => (
               <RecommendationCard
                 key={song.id}
                 song={song}
-                rank={index + 1}
-                isLiked={likedSongs.includes(song.id)}
-                isDisliked={dislikedSongs.includes(song.id)}
-                onLike={() => toggleLike(song.id)}
-                onDislike={() => toggleDislike(song.id)}
+                rank={rankOffset + index + 1}
               />
             ))}
           </div>
 
+          {recommendationPool.length > 5 && (
+            <div className="mt-10 flex justify-center">
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="gap-2 rounded-xl"
+                onClick={handleCycleRecommendations}
+              >
+                <RefreshCw className="size-4" />
+                다른 노래 추천 받기 ({nextRangeLabel})
+              </Button>
+            </div>
+          )}
+
           {/* Empty state */}
-          {recommendations.length === 0 && (
+          {recommendationPool.length === 0 && (
             <div className="text-center py-16">
               <p className="text-muted-foreground mb-4">
-                No recommendations yet. Start by answering some questions!
+                아직 추천이 없습니다. 홈에서 다시 시도해 주세요.
               </p>
-              <Button onClick={handleTryAgain}>Start Questionnaire</Button>
+              <Button onClick={handleStartOver}>홈으로</Button>
             </div>
           )}
         </div>
       </main>
-
-      {/* Footer with actions */}
-      <footer className="border-t border-border px-6 py-6">
-        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-sm text-muted-foreground text-center sm:text-left">
-            {likedSongs.length > 0 && (
-              <span>
-                {likedSongs.length} song{likedSongs.length !== 1 && "s"} liked
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={handleTryAgain}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Try Different Answers
-            </Button>
-            <Button onClick={handleStartOver}>Back to Home</Button>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

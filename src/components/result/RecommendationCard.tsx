@@ -1,43 +1,41 @@
-"use client"
+"use client";
 
-import { Heart, ThumbsDown, Music, Sparkles } from "lucide-react"
-import { cn } from "@/utils/cn"
-import type { PreviewSong as Song } from "@/store/useAppStore"
+import { Music, Play } from "lucide-react";
+import { cn } from "@/utils/cn";
+import type { PreviewSong as Song } from "@/store/useAppStore";
+import { Button } from "@/components/ui/button";
+
+function youtubeSearchUrl(title: string, artist: string): string {
+  const q = `${title} ${artist}`.trim();
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+}
 
 interface RecommendationCardProps {
-  song: Song
-  rank: number
-  isLiked: boolean
-  isDisliked: boolean
-  onLike: () => void
-  onDislike: () => void
-  className?: string
+  song: Song;
+  rank: number;
+  className?: string;
 }
 
 export function RecommendationCard({
   song,
   rank,
-  isLiked,
-  isDisliked,
-  onLike,
-  onDislike,
   className,
 }: RecommendationCardProps) {
+  const listenHref = youtubeSearchUrl(song.title, song.artist);
+
   return (
     <div
       className={cn(
         "group relative rounded-2xl bg-card border border-border p-6 transition-all duration-300",
         "hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5",
-        className
+        className,
       )}
     >
-      {/* Rank badge */}
       <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold shadow-lg">
         {rank}
       </div>
 
       <div className="flex gap-5">
-        {/* Album art */}
         <div className="relative w-24 h-24 rounded-xl bg-secondary flex items-center justify-center shrink-0 overflow-hidden">
           {song.coverUrl.startsWith("http") ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -53,36 +51,29 @@ export function RecommendationCard({
         </div>
 
         <div className="flex-1 min-w-0">
-          {/* Song info */}
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h3 className="font-semibold text-lg truncate">{song.title}</h3>
-              <p className="text-muted-foreground truncate">{song.artist}</p>
-            </div>
-
-            {/* Match score */}
-            <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-primary/10 text-primary shrink-0">
-              <Sparkles className="w-4 h-4" />
-              <span className="text-sm font-semibold">{song.matchScore}%</span>
-            </div>
+          <div className="min-w-0">
+            <h3 className="font-semibold text-lg truncate">{song.title}</h3>
+            <p className="text-muted-foreground truncate">{song.artist}</p>
           </div>
 
-          {/* Genre & mood tags */}
-          <div className="flex gap-2 mt-3">
-            <span className="px-2 py-1 text-xs rounded-md bg-secondary text-secondary-foreground">
-              {song.genre}
-            </span>
-            <span className="px-2 py-1 text-xs rounded-md bg-secondary text-secondary-foreground">
-              {song.mood}
-            </span>
-          </div>
+          {song.tasteMatchTags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {song.tasteMatchTags.map((tag, i) => (
+                <span
+                  key={`${tag}-${i}`}
+                  className="px-2 py-1 text-xs rounded-md bg-secondary text-secondary-foreground"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* AI reasons */}
       <div className="mt-5 pt-5 border-t border-border">
-        <p className="text-xs uppercase tracking-wide text-muted-foreground mb-3">
-          Why this track?
+        <p className="text-xs font-medium text-muted-foreground mb-3">
+          선정된 이유
         </p>
         <ul className="space-y-2">
           {song.reasons.map((reason, index) => (
@@ -97,33 +88,19 @@ export function RecommendationCard({
         </ul>
       </div>
 
-      {/* Feedback actions */}
-      <div className="flex items-center gap-3 mt-5">
-        <button
-          onClick={onLike}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
-            isLiked
-              ? "bg-primary text-primary-foreground"
-              : "bg-secondary text-secondary-foreground hover:bg-primary/20"
-          )}
-        >
-          <Heart className={cn("w-4 h-4", isLiked && "fill-current")} />
-          Like
-        </button>
-        <button
-          onClick={onDislike}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
-            isDisliked
-              ? "bg-destructive text-destructive-foreground"
-              : "bg-secondary text-secondary-foreground hover:bg-destructive/20"
-          )}
-        >
-          <ThumbsDown className={cn("w-4 h-4", isDisliked && "fill-current")} />
-          Not for me
-        </button>
+      <div className="mt-5">
+        <Button asChild className="w-full sm:w-auto">
+          <a
+            href={listenHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2"
+          >
+            <Play className="size-4 fill-current" />
+            듣기
+          </a>
+        </Button>
       </div>
     </div>
-  )
+  );
 }

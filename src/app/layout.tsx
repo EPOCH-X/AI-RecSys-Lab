@@ -1,10 +1,12 @@
 import type { Metadata } from 'next'
 import { Analytics } from '@vercel/analytics/next'
+import { AmbientBackground } from '@/components/common/AmbientBackground'
 import '../styles.css'
 
 export const metadata: Metadata = {
-  title: 'MoodTune AI - Question-Based Music Recommendations',
-  description: 'Discover your perfect soundtrack through AI-powered questions. MoodTune analyzes your mood, moment, and taste to recommend music that fits you right now.',
+  title: 'EPOCH-X · 상황 맞춤 음악 추천',
+  description:
+    '지금 상황과 취향에 맞는 노래를 추천합니다. 문장으로 적거나 장르·분위기·템포를 고르면 규칙과 AI가 후보를 좁혀 드립니다.',
   generator: 'v0.app',
   icons: {
     icon: [
@@ -31,9 +33,10 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className="font-sans antialiased">
-        {children}
+    <html lang="ko">
+      <body className="font-sans antialiased min-h-dvh text-foreground">
+        <AmbientBackground />
+        <div className="relative z-10 min-h-dvh">{children}</div>
         <Analytics />
       </body>
     </html>

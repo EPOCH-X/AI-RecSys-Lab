@@ -1,5 +1,6 @@
 import type { RecommendationItem } from "../../types/graph";
 import type { ScoredSong } from "../../types/song";
+import { trackFingerprint } from "../../utils/trackIdentity";
 /*
 scoring>index.ts scoreSongs() 함수 결과를 필터링하자...
 finalScore 내림차순 정렬
@@ -69,29 +70,35 @@ function makeReason(matchedTags: string[]): string {
 
 export function toRecommendationItems(
   scoredSongs: ScoredSong[],
+  options?: { preserveInputOrder?: boolean; topK?: number },
 ): RecommendationItem[] {
-  return (
-    scoredSongs
-      // 1) finalScore 높은 순으로 정렬
-      .sort((a, b) => b.finalScore - a.finalScore)
-      // 2) 상위 5곡만 선택
-      .slice(0, 5)
-      // 3) RecommendationItem 형태로 변환
-      .map((item) => ({
-        songId: item.song.id,
-        title: item.song.title,
-        artist: item.song.artist,
-        genre: item.song.genre,
-        finalScore: item.finalScore,
+  const topK = Math.max(1, options?.topK ?? 5);
+  const ordered = options?.preserveInputOrder
+    ? [...scoredSongs]
+    : [...scoredSongs].sort((a, b) => b.finalScore - a.finalScore);
 
-        // 곡마다 matchedTags를 보고 추천 이유 생성
-        reason: makeReason(item.matchedTags),
-        coverUrl: item.song.coverUrl,
-        scoreBreakdown: {
-          content: item.contentScore,
-          collaborative: item.collaborativeScore,
-          context: item.contextScore,
-        },
-      }))
-  );
+  const seen = new Set<string>();
+  const picked: ScoredSong[] = [];
+  for (const row of ordered) {
+    const fp = trackFingerprint(row.song.artist, row.song.title);
+    if (seen.has(fp)) continue;
+    seen.add(fp);
+    picked.push(row);
+    if (picked.length >= topK) break;
+  }
+
+  return picked.map((item) => ({
+    songId: item.song.id,
+    title: item.song.title,
+    artist: item.song.artist,
+    genre: item.song.genre,
+    finalScore: item.finalScore,
+    reason: makeReason(item.matchedTags),
+    coverUrl: item.song.coverUrl,
+    scoreBreakdown: {
+      content: item.contentScore,
+      collaborative: item.collaborativeScore,
+      context: item.contextScore,
+    },
+  }));
 }

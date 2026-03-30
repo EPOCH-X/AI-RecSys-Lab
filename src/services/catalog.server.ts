@@ -1,5 +1,6 @@
 import type { NormalizedUserProfile } from "@/types/graph";
 import type { Song } from "@/types/song";
+import { trackFingerprint } from "@/utils/trackIdentity";
 import {
   ITUNES_SEARCH_DEFAULT_LIMIT,
   ITUNES_SEARCH_MAX_LIMIT,
@@ -157,13 +158,18 @@ export async function fetchSongsForProfile(
   );
   const queries = searchQueriesFromProfile(profile);
   const merged = new Map<string, Song>();
+  const seenIdentity = new Set<string>();
 
   for (const query of queries) {
     const enriched = await searchItunesEnriched(query, perQuery);
     for (const row of enriched) {
       const id = String(row.id ?? "");
       if (!id || merged.has(id)) continue;
-      merged.set(id, enrichedTrackToSong(row, profile));
+      const song = enrichedTrackToSong(row, profile);
+      const fp = trackFingerprint(song.artist, song.title);
+      if (seenIdentity.has(fp)) continue;
+      seenIdentity.add(fp);
+      merged.set(id, song);
     }
   }
 

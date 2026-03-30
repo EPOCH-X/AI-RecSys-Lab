@@ -1,0 +1,9 @@
+{
+  "answers": [
+    { "questionId": "genre", "value": "pop" },
+    { "questionId": "mood", "value": "calm" },
+    { "questionId": "activity", "value": "study" },
+    { "questionId": "tempo", "value": "slow" },
+    { "questionId": "energy", "value": "low" }
+  ]
+}

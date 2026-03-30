@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MoodTune AI — 추천 시스템 발표</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0c0f14;
+      --surface: #141a24;
+      --border: #243044;
+      --text: #e8edf4;
+      --muted: #8b9cb3;
+      --accent: #3d9cf0;
+      --accent2: #7c5cff;
+      --warn: #f0b429;
+      --ok: #3ecf8e;
+      --slide-pad: clamp(1.5rem, 4vw, 3.5rem);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "IBM Plex Sans KR", system-ui, sans-serif;
+      overflow: hidden;
+    }
+
+    .deck {
+      height: 100vh;
+      position: relative;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      padding: var(--slide-pad);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      gap: 1.25rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 0%, rgba(61, 156, 240, 0.12), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 100% 100%, rgba(124, 92, 255, 0.1), transparent 50%),
+        var(--bg);
+    }
+
+    .slide.active {
+      display: flex;
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    h1 {
+      font-family: "Outfit", sans-serif;
+      font-weight: 800;
+      font-size: clamp(2rem, 5vw, 3.25rem);
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+    }
+
+    h2 {
+      font-family: "Outfit", sans-serif;
+      font-weight: 700;
+      font-size: clamp(1.35rem, 3vw, 2rem);
+      color: var(--accent);
+      margin-bottom: 0.35rem;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    p, li {
+      font-size: clamp(0.95rem, 1.8vw, 1.1rem);
+      line-height: 1.65;
+      color: var(--text);
+    }
+
+    ul { padding-left: 1.25rem; }
+    li { margin-bottom: 0.45rem; color: #c5d0e0; }
+
+    .tag {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      background: rgba(61, 156, 240, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(61, 156, 240, 0.35);
+      margin-right: 0.35rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+      max-width: 1100px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.15rem;
+    }
+
+    .card strong {
+      display: block;
+      font-family: "Outfit", sans-serif;
+      font-size: 1.05rem;
+      margin-bottom: 0.35rem;
+      color: #fff;
+    }
+
+    .card small {
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.5;
+    }
+
+    table {
+      width: 100%;
+      max-width: 1000px;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 0.55rem 0.65rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    td:first-child {
+      font-weight: 600;
+      color: #fff;
+      white-space: nowrap;
+    }
+
+    .flow {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      max-width: 950px;
+    }
+
+    .flow span {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 0.4rem 0.75rem;
+      border-radius: 8px;
+    }
+
+    .flow i {
+      color: var(--muted);
+      font-style: normal;
+      font-size: 0.75rem;
+    }
+
+    .footnote {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: auto;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      max-width: 900px;
+    }
+
+    .nav {
+      position: fixed;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      z-index: 100;
+      background: rgba(12, 15, 20, 0.85);
+      border: 1px solid var(--border);
+      padding: 0.45rem 1rem;
+      border-radius: 999px;
+      backdrop-filter: blur(8px);
+    }
+
+    .nav button {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.35rem 0.85rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.8rem;
+    }
+
+    .nav button:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    #counter {
+      font-size: 0.75rem;
+      color: var(--muted);
+      min-width: 4rem;
+      text-align: center;
+    }
+
+    .title-slide h1 {
+      max-width: 900px;
+    }
+
+    .title-slide .subtitle {
+      font-size: 1.15rem;
+      color: var(--muted);
+      max-width: 640px;
+    }
+
+    .logo-row {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.5rem;
+    }
+
+    .slide.dense { justify-content: flex-start; padding-top: 2rem; overflow-y: auto; }
+    .slide.dense h2 { margin-bottom: 0.5rem; }
+
+    .pre-block {
+      font-family: ui-monospace, "Cascadia Code", monospace;
+      font-size: 0.72rem;
+      line-height: 1.45;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      max-width: 920px;
+      overflow-x: auto;
+      color: #b8c5d8;
+      white-space: pre;
+    }
+
+    .formula {
+      font-family: ui-monospace, monospace;
+      font-size: 0.82rem;
+      background: rgba(61, 156, 240, 0.08);
+      border-left: 3px solid var(--accent);
+      padding: 0.65rem 1rem;
+      border-radius: 0 8px 8px 0;
+      max-width: 900px;
+      color: #d0dce8;
+    }
+
+    table.wide { font-size: 0.78rem; }
+    table.wide th, table.wide td { vertical-align: top; }
+    table.wide td:nth-child(2) { color: #b0bfd4; }
+
+    .pill-yes {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      background: rgba(62, 207, 142, 0.2);
+      color: var(--ok);
+    }
+
+    .pill-mid {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      background: rgba(240, 180, 41, 0.15);
+      color: var(--warn);
+    }
+
+    .pill-no {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      background: rgba(255, 90, 90, 0.12);
+      color: #ff8a8a;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      max-width: 1000px;
+    }
+    @media (max-width: 800px) {
+      .split { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="deck" id="deck">
+    <!-- 1 -->
+    <section class="slide active title-slide">
+      <div class="logo-row">
+        <span class="tag">AI-RecSys-Lab</span>
+        <span class="tag">Next.js · iTunes · Last.fm · Gemini</span>
+      </div>
+      <h1>MoodTune AI<br />질문 기반 음악 추천 프로토타입</h1>
+      <p class="subtitle">사용자 무드·상황·취향을 수집하고, 하이브리드 규칙·유사도·다양성 재정렬을 조합해 곡을 고릅니다. 발표용 요약 슬라이드입니다.</p>
+      <p class="footnote">총 <strong>21</strong>장 · 조작: ← → 방향키 또는 하단 버튼 · 로컬 파일 열기 또는 <code style="color:var(--accent)">/presentation.html</code></p>
+    </section>
+
+    <!-- 2 -->
+    <section class="slide">
+      <h3>Problem</h3>
+      <h2>무엇을 풀고 싶은가</h2>
+      <div class="split">
+        <div class="card">
+          <strong>문제 인식</strong>
+          <small>같은 “기분 좋은 팝”이라도 사람·순간마다 원하는 음악이 다름. 검색 한 번으로는 <em>맥락</em>(공부·운동·밤)이 반영되기 어렵다.</small>
+        </div>
+        <div class="card">
+          <strong>목표</strong>
+          <small>짧은 질문으로 <strong>프로필</strong>을 만들고, <strong>실시간 카탈로그</strong>에서 후보를 모은 뒤, <strong>설명 가능한 점수</strong>와 <strong>비교 가능한 알고리즘</strong>으로 순위를 낸다.</small>
+        </div>
+      </div>
+      <ul style="max-width:900px;margin-top:0.5rem">
+        <li><strong>기여:</strong> 하이브리드 규칙(Baseline) + 벡터 유사도(Cosine) + 다양성(MMR)을 <strong>같은 입력</strong>으로 나란히 비교할 수 있는 발표용 흐름.</li>
+      </ul>
+    </section>
+
+    <!-- 3 -->
+    <section class="slide">
+      <h3>Agenda</h3>
+      <h2>오늘 말할 것</h2>
+      <ul style="max-width:820px">
+        <li>문제 정의 · 사용자 여정 · <strong>시스템 아키텍처(데이터 흐름)</strong></li>
+        <li>데이터 소스: iTunes, Last.fm, 로컬 JSON, Gemini</li>
+        <li>파이프라인 블록 · <strong>콘텐츠 점수 규칙</strong> · Baseline 가중합 수식</li>
+        <li>실행 모드 4종 · <strong>알고리즘 비교표</strong> · Cosine / MMR 개념</li>
+        <li>LLM 역할 · 발표용 일괄 비교 UI/API · <strong>평가 지표</strong></li>
+        <li>한계 · 개선 방향 · 정리</li>
+      </ul>
+    </section>
+
+    <!-- 4 -->
+    <section class="slide">
+      <h3>User journey</h3>
+      <h2>사용자가 겪는 흐름</h2>
+      <div class="flow">
+        <span>홈</span><i>→</i>
+        <span>질문 (무드·활동·장르·템포·에너지·자유 서술)</span><i>→</i>
+        <span>로딩</span><i>→</i>
+        <span>클라이언트: runRecommendationGraph</span><i>→</i>
+        <span>POST /api/catalog/songs</span><i>→</i>
+        <span>결과 Top-5</span><i>→</i>
+        <span style="border-color:var(--accent2);color:var(--accent2)">알고리즘 비교 (발표용)</span>
+      </div>
+      <p style="max-width:860px;margin-top:1rem"><strong>NormalizedUserProfile</strong>로 정규화 → (선택) <strong>Gemini</strong>로 서술 기반 태그 보강 → 프로필로 검색 쿼리 여러 개 생성 → iTunes로 곡 수집 → 곡마다 Last.fm 태그(가능 시) → 내부 <code>Song</code>으로 변환 후 점수화.</p>
+      <p class="footnote">스택: Next.js(App Router) · Zustand · TypeScript. 추천 그래프: <code>src/graph/recommendationGraph.ts</code> · 공통 파이프라인: <code>recommendationPipeline.ts</code></p>
+    </section>
+
+    <!-- 5 -->
+    <section class="slide dense">
+      <h3>Architecture</h3>
+      <h2>데이터 · API 흐름 (요약)</h2>
+      <pre class="pre-block">[브라우저]
+  QuestionPage → answers
+  LoadingPage  → runRecommendationGraph(graphState)
+       │
+       ├─► Gemini: enrichProfile (자유 서술)     … 프로필 보강
+       ├─► POST /api/catalog/songs { profile } … 서버에서 iTunes + Last.fm
+       │         └─► Song[] (id, title, artist, genre, bpm, moodTags, …)
+       └─► runFullScoringForMode(songs, profile, NEXT_PUBLIC_RECSYS_ALGO)
+                 └─► toRecommendationItems → Top-5
+       └─► Gemini: generateReasons … 곡별 설명 문장 (일반 플로우)
+
+[발표용 비교]
+  ComparePage → POST /api/recommend/compare { answers }
+       └─► 동일 카탈로그 1번 + 모드 4번 점수화 (LLM 이유 생략 가능)</pre>
+    </section>
+
+    <!-- 6 -->
+    <section class="slide">
+      <h3>Data</h3>
+      <h2>어디서 데이터를 가져오나</h2>
+      <div class="grid-2">
+        <div class="card">
+          <strong>Apple iTunes Search API</strong>
+          <small>제목·아티스트·앨범·아트·미리듣기 등. 프로필에서 최대 6개 검색어(장르/무드/활동/템포/에너지 조합)로 여러 번 검색 후 중복 제거 병합.</small>
+        </div>
+        <div class="card">
+          <strong>Last.fm (선택, LASTFM_API_KEY)</strong>
+          <small>곡별 태그. 실패 시 빈 배열 — 전체는 죽지 않음. 태그가 비면 무드/BPM/에너지 추정이 비슷해져 <strong>점수 동률</strong>이 늘 수 있음.</small>
+        </div>
+        <div class="card">
+          <strong>로컬 JSON</strong>
+          <small><code>users.json</code> 가상 사용자, <code>playlists.json</code> 큐레이션. 곡 ID가 전부 숫자(iTunes)면 <strong>협업 부스트 스킵</strong> — 로컬 데모 ID와 섞이지 않게 하기 위함.</small>
+        </div>
+        <div class="card">
+          <strong>Google Gemini</strong>
+          <small><code>NEXT_PUBLIC_GEMINI_API_KEY</code> 등. 프로필 보강 + 추천 이유 문장. <strong>순위 결정 알고리즘은 아님.</strong></small>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7 -->
+    <section class="slide dense">
+      <h3>Pipeline</h3>
+      <h2>순위를 만드는 블록들</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>블록</th>
+            <th>역할</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>콘텐츠 (scoreSongs)</td>
+            <td>장르·무드·활동 태그 매칭. 규칙 기반이라 발표 시 설명 용이.</td>
+          </tr>
+          <tr>
+            <td>협업 부스트</td>
+            <td>가상 사용자 중 유사 이웃의 liked/skipped 반영. <strong>iTunes 숫자 ID 카탈로그에서는 미적용.</strong></td>
+          </tr>
+          <tr>
+            <td>플레이리스트 보정</td>
+            <td>큐레이션과 맞는 후보 가산.</td>
+          </tr>
+          <tr>
+            <td>컨텍스트</td>
+            <td>BPM 선호 구간, 운동/휴식, 에너지 일치, 로맨틱 태그 등.</td>
+          </tr>
+          <tr>
+            <td>가중 합성</td>
+            <td>각 점수 축을 max로 정규화 후 <strong>0.5·0.3·0.2</strong> (콘텐츠·협업·컨텍스트).</td>
+          </tr>
+          <tr>
+            <td>Cosine</td>
+            <td>프로필·곡 희소 벡터 코사인 → finalScore 대체.</td>
+          </tr>
+          <tr>
+            <td>MMR</td>
+            <td>상위 풀(예: 25곡)에서 λ·관련성·상호 유사도로 Top-5 선택.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 8 -->
+    <section class="slide dense">
+      <h3>Content score</h3>
+      <h2>콘텐츠 점수 (Baseline의 첫 단계)</h2>
+      <p style="max-width:880px;font-size:0.92rem">구현: <code>src/domain/scoring/index.ts</code> — 태그는 부분 문자열 매칭도 허용.</p>
+      <ul style="max-width:880px;font-size:0.92rem">
+        <li><strong>장르:</strong> 프로필 장르와 곡 장르가 맞으면 <strong>+3</strong></li>
+        <li><strong>무드:</strong> 곡 <code>moodTags</code> 중 프로필 <code>moods</code>와 겹치는 개수 × <strong>2</strong></li>
+        <li><strong>활동:</strong> 곡 <code>activityTags</code> 중 프로필 <code>activities</code>와 겹치는 개수 × <strong>2</strong></li>
+        <li><strong>contentScore</strong> = 위 합. 같은 조합이면 <strong>동점</strong>이 잦음 → 컨텍스트·가중합·(또는) Cosine/MMR이 차별에 기여.</li>
+      </ul>
+    </section>
+
+    <!-- 9 -->
+    <section class="slide">
+      <h3>Baseline merge</h3>
+      <h2>최종 점수 합성 (모드: baseline / hybrid_mmr 전 단계)</h2>
+      <p class="formula">nc = content / max(content)&nbsp;&nbsp;·&nbsp;&nbsp;nCol = max(collab,0) / max(collab⁺)&nbsp;&nbsp;·&nbsp;&nbsp;nCtx = max(context,0) / max(context⁺)<br />
+      blended = 0.5×nc + 0.3×nCol + 0.2×nCtx&nbsp;&nbsp;→&nbsp;&nbsp;finalScore = blended × 10</p>
+      <ul style="max-width:860px;margin-top:0.75rem;font-size:0.92rem">
+        <li>max 정규화 때문에 상위권이 비슷하게 보일 수 있음 — 발표에서 “트레이드오프”로 언급 가능.</li>
+        <li><strong>hybrid_mmr</strong>는 위 finalScore까지 동일하게 계산한 뒤, Top-5만 MMR로 다시 고름.</li>
+      </ul>
+    </section>
+
+    <!-- 10 -->
+    <section class="slide">
+      <h3>Algorithm modes</h3>
+      <h2>실행 모드 4종</h2>
+      <p style="max-width:900px;margin-bottom:0.5rem"><code style="color:var(--warn)">NEXT_PUBLIC_RECSYS_ALGO</code> = <strong>baseline</strong> | <strong>cosine</strong> | <strong>cosine_mmr</strong> | <strong>hybrid_mmr</strong> &nbsp;·&nbsp; 변경 후 <strong>dev 서버 재시작</strong></p>
+      <div class="grid-2">
+        <div class="card">
+          <strong>Baseline (A)</strong>
+          <small>콘텐츠 → 협업(조건부) → 플레이리스트 → 컨텍스트 → 가중합. 기본 데모·설명용.</small>
+        </div>
+        <div class="card">
+          <strong>Cosine (B)</strong>
+          <small>콘텐츠 점수 단계 후 코사인만으로 재랭킹. “유사도만 쓰면?” 대조군.</small>
+        </div>
+        <div class="card">
+          <strong>Cosine + MMR (B+D)</strong>
+          <small>코사인 점수 상위 풀 → MMR로 Top-5. 다양성 강조 실험.</small>
+        </div>
+        <div class="card">
+          <strong>Hybrid + MMR (A+D)</strong>
+          <small>Baseline과 동일 점수 후 MMR만 적용. 정확도 논리 유지 + 목록 다양화.</small>
+        </div>
+      </div>
+    </section>
+
+    <!-- 11 -->
+    <section class="slide dense">
+      <h3>Comparison</h3>
+      <h2>알고리즘 비교 — 발표용 한 장</h2>
+      <table class="wide">
+        <thead>
+          <tr>
+            <th>모드</th>
+            <th>강점</th>
+            <th>약점 / 주의</th>
+            <th>언제 쓰나</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Baseline</td>
+            <td>해석 쉬움, 블록별 기여 설명 가능</td>
+            <td>정수 콘텐츠·정규화로 동점·근접 빈번</td>
+            <td>기본 시연, “왜 이 곡?” 슬라이드</td>
+          </tr>
+          <tr>
+            <td>Cosine</td>
+            <td>수식 명확, ML 입문 대비</td>
+            <td>특성이 비슷하면 유사도도 뭉침</td>
+            <td>Baseline과의 <strong>정량·정성 비교</strong></td>
+          </tr>
+          <tr>
+            <td>+ MMR</td>
+            <td>비슷한 곡 연속 완화, 다양성 지표 설명 용이</td>
+            <td>λ·풀 크기에 따라 순위 변동</td>
+            <td>“다양성 vs 관련성” 트레이드오프</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="footnote" style="border:none;padding-top:0.5rem">다음 슬라이드는 <strong>동일 프로젝트에서 실제 API를 호출해 얻은 스냅샷</strong>입니다. iTunes/Last.fm 결과는 시점마다 달라질 수 있습니다.</p>
+    </section>
+
+    <!-- 11b 실측 조건 -->
+    <section class="slide dense">
+      <h3>Live experiment</h3>
+      <h2>실측 실험 조건 (프로젝트 API)</h2>
+      <p style="max-width:900px;font-size:0.92rem"><strong>엔드포인트:</strong> <code>POST /api/recommend/compare</code> · <strong>캡처일:</strong> 2026-03-28 · <strong>카탈로그 후보:</strong> 298곡</p>
+      <pre class="pre-block" style="white-space:pre-wrap">입력 답변 (질문 ID → 값)
+  genre → pop  |  mood → calm  |  activity → study
+  tempo → slow |  energy → low
+
+→ 프로필: 장르 pop, 무드 calm, 공부, BPM 선호 [60,85], 에너지 2
+→ preferenceTags: calm, study, pop, slow_bpm, low_energy</pre>
+      <p class="footnote" style="border:none;padding-top:0.35rem">재현: 저장소 <code>scripts/compare-payload.json</code> 동일 본문으로 요청. 스크린샷용 전용 페이지: <code>/compare-snapshot.html</code></p>
+    </section>
+
+    <!-- 11c 실측 지표 -->
+    <section class="slide dense">
+      <h3>Live experiment</h3>
+      <h2>실측 요약 지표 (Top-5)</h2>
+      <table class="wide">
+        <thead>
+          <tr><th>모드</th><th>서로 다른 장르 수</th><th>서로 다른 아티스트 수</th><th>평균 finalScore</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Baseline</td><td>1</td><td>3</td><td>8.89</td></tr>
+          <tr><td>Cosine</td><td>1</td><td>3</td><td>8.78</td></tr>
+          <tr><td>Cosine + MMR</td><td>1</td><td>3</td><td>8.78</td></tr>
+          <tr><td>Hybrid + MMR</td><td>1</td><td><strong>4</strong></td><td>8.74</td></tr>
+        </tbody>
+      </table>
+      <p style="max-width:900px;margin-top:0.75rem;font-size:0.88rem;color:#b0bfd4"><strong>해석:</strong> 장르는 모두 <code>pop</code>으로 동일 라벨이라 장르 다양성 지표는 1로 고정. <strong>아티스트 수</strong>는 Hybrid+MMR에서만 4로 늘어, MMR이 같은 점수권에서도 <em>서로 다른 가수</em>를 끌어오는 효과가 수치로 드러남.</p>
+    </section>
+
+    <!-- 11c2 자동 스크린샷 -->
+    <section class="slide dense" style="justify-content:flex-start;padding-top:1.5rem">
+      <h3>Live experiment</h3>
+      <h2>실측 화면 캡처 (자동 생성)</h2>
+      <p style="max-width:900px;font-size:0.85rem;color:var(--muted)"><code>public/compare-snapshot.html</code>을 Playwright로 캡처한 PNG입니다. 재생성: <code>node scripts/snapshot-compare.mjs</code></p>
+      <img src="experiment-snapshot.png" alt="알고리즘 비교 실측 스냅샷" style="max-height:62vh;width:auto;max-width:100%;object-fit:contain;border-radius:10px;border:1px solid var(--border);margin-top:0.35rem" />
+    </section>
+
+    <!-- 11d 실측 관찰 -->
+    <section class="slide dense">
+      <h3>Live experiment</h3>
+      <h2>같은 입력인데 목록이 어떻게 달라졌나</h2>
+      <ul style="max-width:940px;font-size:0.88rem">
+        <li><strong>Baseline:</strong> Top-5가 모두 <strong>동일 점수(8.89…)</strong> — 규칙 기반 콘텐츠+컨텍스트+가중합의 <em>동점</em> 현상. Teddy Swims <em>Lose Control</em> 계열이 1·4·5위에 반복.</li>
+        <li><strong>Cosine:</strong> 순위가 Charlie Puth 위주로 <strong>완전히 다른 세트</strong> — 협업·컨텍스트 가중 없이 벡터 유사도만 쓰면 이번 카탈로그에선 한 아티스트/앨범 군집으로 쏠림.</li>
+        <li><strong>Cosine + MMR:</strong> 이번 실행에서는 Cosine과 <strong>순서 동일</strong>. 후보 태그가 매우 비슷하면 MMR이 순서를 바꾸지 못할 수 있음(발표에서 “데이터 의존”으로 설명).</li>
+        <li><strong>Hybrid + MMR:</strong> Baseline 상위권을 유지하되 5위가 <strong>Alicia Keys — No One</strong>으로 바뀌어 Teddy 편중 완화 + 아티스트 수 증가.</li>
+      </ul>
+      <p class="footnote" style="border:none;padding-top:0.35rem">직접 캡처: <code>compare-snapshot.html</code> 또는 앞 슬라이드의 <code>experiment-snapshot.png</code> 활용.</p>
+    </section>
+
+    <!-- 12 -->
+    <section class="slide">
+      <h3>Cosine &amp; MMR</h3>
+      <h2>짧은 정의</h2>
+      <div class="split">
+        <div class="card">
+          <strong>코사인 유사도</strong>
+          <small>프로필과 곡을 같은 축(장르·무드·활동·BPM·에너지 등)의 벡터로 두고, 각도에 가까운 개념인 cos(θ)로 “얼마나 같은 방향인가”를 0~1에 가깝게 측정.</small>
+        </div>
+        <div class="card">
+          <strong>MMR</strong>
+          <small>매 선택마다 “지금 후보의 점수(관련성)”와 “이미 고른 곡들과의 유사도”를 λ로 섞어, 상위만 골랐을 때 생기는 <strong>편중</strong>을 줄임.</small>
+        </div>
+      </div>
+      <p style="max-width:880px;margin-top:0.5rem;font-size:0.9rem">코드: <code>alternativeAlgorithms.ts</code> — <code>applyCosineRanking</code>, <code>applyMmrRerank</code></p>
+    </section>
+
+    <!-- 13 -->
+    <section class="slide">
+      <h3>LLM</h3>
+      <h2>Gemini 역할 (순위와 분리)</h2>
+      <div class="split">
+        <div class="card">
+          <strong>순위에 가까운 영향</strong>
+          <small>프로필 보강 → 태그·검색 품질에 <em>간접</em> 영향.</small>
+        </div>
+        <div class="card">
+          <strong>순위와 무관</strong>
+          <small>이미 정해진 Top-N에 대한 <strong>자연어 이유</strong> 생성.</small>
+        </div>
+      </div>
+      <ul style="max-width:800px;margin-top:0.75rem">
+        <li>발표 문장 예: “추천 <em>순서</em>는 규칙·유사도·MMR이 정하고, Gemini는 <em>사용자에게 보여 줄 설명</em>을 씁니다.”</li>
+      </ul>
+      <p class="footnote">비교 API: 동일 입력으로 4모드 결과만 빠르게 보려면 LLM 이유를 생략할 수 있음.</p>
+    </section>
+
+    <!-- 14 -->
+    <section class="slide dense">
+      <h3>Presentation lab</h3>
+      <h2>발표용 일괄 비교 — 무엇이 좋아지나</h2>
+      <table class="wide">
+        <thead>
+          <tr>
+            <th>항목</th>
+            <th>설명</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>동일 조건</td>
+            <td>같은 답변·같은 카탈로그로 <strong>4모드 동시</strong> 계산 → 공정 비교.</td>
+          </tr>
+          <tr>
+            <td>요약 표</td>
+            <td>Top-5 기준 <strong>서로 다른 장르 수·아티스트 수·평균 점수</strong> — 다양성 논의에 유리.</td>
+          </tr>
+          <tr>
+            <td>마크다운 복사</td>
+            <td>표 + 곡 목록을 노션/구글 슬라이드 노트에 즉시 붙여넣기.</td>
+          </tr>
+          <tr>
+            <td>경로</td>
+            <td>UI: 결과 화면 <strong>「알고리즘 비교 (발표용)」</strong> · API: <code>POST /api/recommend/compare</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 15 -->
+    <section class="slide dense">
+      <h3>Evaluation</h3>
+      <h2>평가 지표 아이디어 (발표용)</h2>
+      <ul style="max-width:900px;font-size:0.92rem">
+        <li><strong>다양성:</strong> Top-K에서 서로 다른 장르/아티스트 수 (앱 비교 화면과 동일 개념).</li>
+        <li><strong>커버리지:</strong> 여러 세션에서 추천된 곡이 카탈로그의 몇 %를 덮는지.</li>
+        <li><strong>정성:</strong> 팀원 설문 “맞는 것 같다” 척도 — 같은 입력으로 모드별 A/B.</li>
+        <li><strong>지연:</strong> 카탈로그 API 응답 시간( iTunes + Last.fm 병렬량에 민감).</li>
+      </ul>
+      <p class="footnote" style="border:none">오프라인 정답 라벨이 없으면 <strong>NDCG</strong> 등은 생략하고, 위 항목만으로도 학부 수준 발표는 충분히 가능.</p>
+    </section>
+
+    <!-- 16 -->
+    <section class="slide dense">
+      <h3>Limitations</h3>
+      <h2>한계 · 개선 로드맵</h2>
+      <ul style="max-width:900px;font-size:0.92rem">
+        <li><strong>API 변동:</strong> 타임아웃·재시도·캐시 없음 → 느리거나 간헐 실패.</li>
+        <li><strong>Last.fm 공백:</strong> 태그 폴백, iTunes <code>primaryGenreName</code> 활용, 호출 동시 수 제한.</li>
+        <li><strong>동점:</strong> 콘텐츠에 BPM·에너지 거리 가산, tie-break 규칙.</li>
+        <li><strong>보안:</strong> 클라이언트에 노출되는 API 키는 반드시 도메인/쿼터 제한.</li>
+      </ul>
+    </section>
+
+    <!-- 17 -->
+    <section class="slide title-slide">
+      <h3>Closing</h3>
+      <h1>정리</h1>
+      <p class="subtitle" style="margin-top:0.5rem">질문으로 만든 프로필과 실시간 카탈로그 위에서 <strong>Baseline · Cosine · MMR 조합 4모드</strong>를 돌릴 수 있고, 발표용 화면으로 <strong>동일 입력 비교</strong>와 <strong>마크다운보내기</strong>까지 지원합니다. LLM은 순위가 아니라 <strong>보강·설명</strong>에 집중합니다.</p>
+      <p class="footnote">감사합니다. Q&amp;A 환영합니다.</p>
+    </section>
+  </div>
+
+  <nav class="nav" aria-label="슬라이드 이동">
+    <button type="button" id="prev" aria-label="이전">← 이전</button>
+    <span id="counter">1 / 21</span>
+    <button type="button" id="next" aria-label="다음">다음 →</button>
+  </nav>
+
+  <script>
+    (function () {
+      var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+      var i = 0;
+
+      function show(n) {
+        i = Math.max(0, Math.min(n, slides.length - 1));
+        slides.forEach(function (s, idx) {
+          s.classList.toggle("active", idx === i);
+        });
+        document.getElementById("counter").textContent = i + 1 + " / " + slides.length;
+      }
+
+      document.getElementById("prev").addEventListener("click", function () {
+        show(i - 1);
+      });
+      document.getElementById("next").addEventListener("click", function () {
+        show(i + 1);
+      });
+
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") {
+          e.preventDefault();
+          show(i + 1);
+        } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+          e.preventDefault();
+          show(i - 1);
+        } else if (e.key === "Home") {
+          show(0);
+        } else if (e.key === "End") {
+          show(slides.length - 1);
+        }
+      });
+
+      show(0);
+    })();
+  </script>
+</body>
+</html>

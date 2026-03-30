@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, RefreshCw, CheckCircle } from "lucide-react";
+import { Home, RefreshCw, CheckCircle, BarChart3 } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
 import { RecommendationCard } from "@/components/result/RecommendationCard";
 import { Button } from "@/components/ui/button";
@@ -108,7 +108,15 @@ export function ResultPage() {
               </span>
             )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Button
+              variant="secondary"
+              onClick={() => setCurrentView("compare")}
+              className="gap-2"
+            >
+              <BarChart3 className="w-4 h-4" />
+              알고리즘 비교 (발표용)
+            </Button>
             <Button variant="outline" onClick={handleTryAgain}>
               <RefreshCw className="w-4 h-4 mr-2" />
               Try Different Answers

@@ -27,7 +27,7 @@ export interface PreviewSong {
   reasons: string[];
 }
 
-type CurrentView = "home" | "questions" | "loading" | "results";
+type CurrentView = "home" | "questions" | "loading" | "results" | "compare";
 
 interface AppState {
   currentView: CurrentView;

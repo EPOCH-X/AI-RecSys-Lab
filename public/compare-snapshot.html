@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>알고리즘 비교 — 실측 스냅샷</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root { --bg:#0e1218; --card:#161d28; --b:#2a3545; --t:#e8edf4; --m:#8b9cb3; --a:#3d9cf0; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; background: var(--bg); color: var(--t); font-family: "IBM Plex Sans KR", sans-serif; }
+    h1 { font-size: 1.35rem; margin: 0 0 8px; }
+    .meta { color: var(--m); font-size: 0.85rem; margin-bottom: 20px; line-height: 1.5; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+    .col { background: var(--card); border: 1px solid var(--b); border-radius: 10px; padding: 12px 14px; }
+    .col h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: .08em; color: var(--a); margin: 0 0 8px; }
+    .col .m { font-size: 0.75rem; color: var(--m); margin-bottom: 8px; }
+    ol { margin: 0; padding-left: 1.1rem; font-size: 0.82rem; line-height: 1.45; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 16px; max-width: 720px; }
+    th, td { border-bottom: 1px solid var(--b); padding: 6px 8px; text-align: left; }
+    th { color: var(--a); font-size: 0.7rem; }
+    .banner { background: rgba(61,156,240,.12); border: 1px solid rgba(61,156,240,.35); padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <h1>MoodTune — 알고리즘 비교 실측 스냅샷</h1>
+  <p class="meta">
+    생성: 2026-03-28 · 동일 입력 POST <code>/api/recommend/compare</code> · 카탈로그 후보 <strong>298</strong>곡<br />
+    입력 프로필: 장르 pop · 무드 calm · 활동 study · 템포 slow · 에너지 low
+  </p>
+  <div class="banner">
+    발표 슬라이드에 넣을 때: 이 페이지를 브라우저 전체 화면으로 연 뒤 <strong>Win+Shift+S</strong> 또는 <strong>인쇄 → PDF</strong>로 캡처하세요.
+  </div>
+  <table>
+    <thead><tr><th>모드</th><th>서로 다른 장르</th><th>서로 다른 아티스트</th><th>평균 점수</th></tr></thead>
+    <tbody>
+      <tr><td>Baseline</td><td>1</td><td>3</td><td>8.89</td></tr>
+      <tr><td>Cosine</td><td>1</td><td>3</td><td>8.78</td></tr>
+      <tr><td>Cosine + MMR</td><td>1</td><td>3</td><td>8.78</td></tr>
+      <tr><td>Hybrid + MMR</td><td>1</td><td>4</td><td>8.74</td></tr>
+    </tbody>
+  </table>
+  <div class="grid" style="margin-top:20px">
+    <div class="col">
+      <h2>Baseline Top-5</h2>
+      <div class="m">상위 5곡 모두 동일 점수 8.89 — 정수 규칙+정규화로 동점</div>
+      <ol>
+        <li>Teddy Swims — Lose Control</li>
+        <li>Benson Boone — Beautiful Things</li>
+        <li>ROSÉ — toxic till the end</li>
+        <li>Teddy Swims — Lose Control (다른 릴리스)</li>
+        <li>Teddy Swims — Lose Control (Strings)</li>
+      </ol>
+    </div>
+    <div class="col">
+      <h2>Cosine Top-5</h2>
+      <div class="m">Charlie Puth 앨범군으로 쏠림 — 벡터 유사도만 사용</div>
+      <ol>
+        <li>Sideways — Charlie Puth &amp; Coco Jones</li>
+        <li>Washed Up — Charlie Puth</li>
+        <li>Don’t Meet Your Heroes — Charlie Puth</li>
+        <li>Hey Brother — Charlie Puth</li>
+        <li>Love In Exile — Charlie Puth …</li>
+      </ol>
+    </div>
+    <div class="col">
+      <h2>Hybrid + MMR Top-5</h2>
+      <div class="m">아티스트 다양성 3→4, 5위가 Alicia Keys로 교체</div>
+      <ol>
+        <li>Teddy Swims — Lose Control</li>
+        <li>Teddy Swims — Lose Control (Strings)</li>
+        <li>ROSÉ — toxic till the end</li>
+        <li>Benson Boone — Beautiful Things</li>
+        <li>Alicia Keys — No One</li>
+      </ol>
+    </div>
+  </div>
+</body>
+</html>

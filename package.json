@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "build:playlists:youtube": "node scripts/fetch-playlists-youtube.mjs"
+    "build:playlists:youtube": "node scripts/fetch-playlists-youtube.mjs",
+    "snapshot:presentation": "node scripts/snapshot-compare.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -66,6 +67,7 @@
     "@types/node": "^22",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "playwright": "^1.49.1",
     "postcss": "^8.5",
     "tailwindcss": "^4.2.0",
     "tw-animate-css": "1.3.3",

@@ -17,12 +17,7 @@ export type AlgorithmMode =
   | "cosine_mmr"
   | "hybrid_mmr";
 
-export const ALGORITHM_MODES: AlgorithmMode[] = [
-  "baseline",
-  "cosine",
-  "cosine_mmr",
-  "hybrid_mmr",
-];
+export const ALGORITHM_MODES: AlgorithmMode[] = ["baseline"];
 
 export const ALGORITHM_COMPARE_LABELS: Record<
   AlgorithmMode,
@@ -51,11 +46,7 @@ export const ALGORITHM_COMPARE_LABELS: Record<
   },
 };
 
-export function parseAlgorithmMode(raw: string | undefined): AlgorithmMode {
-  const s = (raw ?? "baseline").toLowerCase();
-  if (s === "cosine") return "cosine";
-  if (s === "cosine_mmr") return "cosine_mmr";
-  if (s === "hybrid_mmr") return "hybrid_mmr";
+export function parseAlgorithmMode(_raw: string | undefined): AlgorithmMode {
   return "baseline";
 }
 

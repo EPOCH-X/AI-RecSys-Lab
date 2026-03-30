@@ -45,6 +45,11 @@ export function ResultPage() {
     recommendationPool.length,
   );
 
+  const handleCycleRecommendations = () => {
+    cycleRecommendationWindow();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -101,7 +106,7 @@ export function ResultPage() {
                 variant="outline"
                 size="lg"
                 className="gap-2 rounded-xl"
-                onClick={() => cycleRecommendationWindow()}
+                onClick={handleCycleRecommendations}
               >
                 <RefreshCw className="size-4" />
                 다른 노래 추천 받기 ({nextRangeLabel})

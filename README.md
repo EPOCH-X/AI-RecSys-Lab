@@ -1,105 +1,126 @@
 # AI-RecSys-Lab
 
-AI-assisted hybrid music recommendation web app built with Next.js, realtime music APIs, and Gemini.
-
-This project collects a user's current taste through short questions plus one free-text prompt, fetches candidate tracks from external music sources, reranks them with hybrid recommendation logic, and generates natural-language recommendation reasons.
+Next.js, 로컬 곡 카탈로그, Gemini를 기반으로 만든 AI 음악 추천 웹 앱입니다.
 
 ## Overview
 
-사용자 질문과 자유 서술을 바탕으로, 지금 상황에 맞는 음악을 찾는 추천 시스템입니다.
+문장 입력 또는 객관식 입력을 받아 서버에서 추천 점수를 계산하는 구조입니다.
 
-The app is designed around one simple question:
+이 프로젝트는 아래 질문을 중심으로 설계되어 있습니다.
 
-`What music fits the user's current mood, context, and taste right now?`
+`What songs best fit the user's taste and listening context right now?`
 
-To answer that, the system combines:
+이 질문에 답하기 위해 시스템은 다음 요소를 조합합니다.
 
-- structured user input from guided questions
-- realtime catalog lookup
-- content-based scoring
-- collaborative-style score boosts from local preference data
-- context-aware reranking
-- LLM-based free-text interpretation and explanation generation
+- 두 가지 입력 모드: 자유 서술형, 구조화 선택형
+- 서버 측 사용자 프로필 정규화
+- `src/data/songs.json` 기반 로컬 곡 카탈로그 조회
+- 규칙 기반 콘텐츠 점수 계산
+- Gemini 기반 상황 보정 재정렬
+- 차트 순위 및 앨범 메타데이터 가점
+- 결과 카드용 추천 이유 태그 생성
 
 ## Features
 
-질문 입력, 실시간 곡 조회, 하이브리드 추천, LLM 해석과 추천 이유 생성을 포함합니다.
+현재 코드에서 실제로 동작하는 기능만 기준으로 정리했습니다.
 
-- Guided questionnaire for music preference input
-- Free-text final question interpreted by Gemini
-- Realtime track lookup through iTunes Search API
-- Tag enrichment through Last.fm top tags
-- Hybrid recommendation pipeline
-- Recommendation reasons generated with Gemini or fallback rules
-- Result cards with feedback actions
+- 홈 화면에서 두 가지 추천 진입 방식 제공
+- 자연어 문장을 입력하는 Simple mode
+- 장르, 분위기, 템포, 선호 가수, 연령대, 상황을 선택하는 Detailed mode
+- Simple mode용 Gemini 기반 서술 해석
+- `/api/recommend`를 통한 서버 측 랭킹 계산
+- 상위 15곡을 5곡씩 3개 구간으로 나누어 표시
+- 일치 태그, 추천 이유, YouTube 검색 링크가 포함된 결과 카드
 
 ## Recommendation Signals
 
-추천은 장르, 무드, 활동, 템포, 에너지 다섯 축을 중심으로 동작합니다.
+현재 추천은 장르, 분위기, 템포, 가수, 연령대, 상황 정보를 중심으로 계산됩니다.
 
-The current recommendation flow is centered on these signals:
+현재 파이프라인에서 직접 사용하는 주요 신호는 아래와 같습니다.
 
-- genre: `pop`, `r&b`, `soul`, `acoustic`, `lo-fi`, `ballad`, `indie`
-- mood: `calm`, `energetic`, `emotional`, `comforting`, `romantic`
-- activity: `study`, `workout`, `relax`, `commute`
-- tempo: `slow`, `mid`, `fast`
-- energy: `low`, `medium`, `high`
+- genre: `발라드`, `댄스`, `힙합`, `R&B`, `록/밴드`, `팝`, `인디`, `OST`, `기타/애매`
+- mood: `밝음`, `감성`, `신남`, `잔잔함`, `몽환`, `강렬함`, `기타/애매`
+- tempo: `느림`, `보통`, `빠름`
+- favorite artist: 직접 입력한 선호 가수 또는 서술형 문장에서 추출한 가수명
+- listener context: 연령대와 `study`, `workout`, `relax`, `commute`, `night`, `drive` 같은 상황 값
 
-The last question is free-form text, and the LLM maps that input back into these same signals to enrich the profile.
+추천 엔진은 가수, 장르, 분위기, 템포 일치에 가장 큰 직접 가중치를 주고, 이후 연령대, 듣는 상황, 차트 순위, 앨범 묶음 정보를 반영해 점수를 보정합니다.
 
 ## How It Works
 
-입력 수집부터 추천 이유 생성까지 하나의 파이프라인으로 연결됩니다.
+입력 수집부터 결과 카드 생성까지 하나의 서버 파이프라인으로 연결됩니다.
 
 ```text
-Question answers
--> Answer normalization
--> Free-text LLM augmentation
--> Realtime catalog fetch
--> Tag enrichment
--> Content-based scoring
--> Collaborative boost
--> Context rerank
--> Final score merge
--> Recommendation reason generation
--> Result rendering
+HomePage
+-> SimpleRecommendPage or DetailedRecommendPage
+-> LoadingPage
+-> POST /api/recommend
+-> buildProfile()
+-> loadCatalogSongsFromJson()
+-> stage1MusicalScore()
+-> llmAgeSituationDeltas()
+-> final score merge
+-> top 15 selection with artist cap
+-> ResultPage
 ```
+
+파이프라인 상세 흐름은 다음과 같습니다.
+
+1. 클라이언트가 자유 서술 입력 또는 구조화된 취향 선택값을 수집합니다.
+2. API가 요청을 검증하고 정규화된 사용자 프로필을 생성합니다.
+3. Simple mode에서는 Gemini가 문장에서 장르, 분위기, 템포, 선호 가수를 추출합니다.
+4. 서버가 `src/data/songs.json`에서 곡 데이터를 불러옵니다.
+5. 1차 단계에서 장르, 분위기, 템포, 가수, 제목 언급 여부를 기준으로 규칙 기반 점수를 계산합니다.
+6. Gemini가 연령대, 분위기 선호, 듣는 상황을 반영해 2차 보정 점수를 적용합니다.
+7. 차트 가점, 앨범 가점, 연령대 기반 최신곡 보정 패널티를 최종 점수에 합칩니다.
+8. 동일 가수 비중을 제한한 뒤 상위 15곡을 고르고, 추천 이유와 취향 일치 태그를 구성합니다.
 
 ## Tech Stack
 
-Next.js 기반 프론트엔드에 Zustand, Gemini, 외부 음악 API를 결합한 구조입니다.
+프론트엔드, 상태 관리, 추천 서버 로직, LLM 연동에 사용된 실제 스택입니다.
 
 - Next.js 16
 - React 19
 - TypeScript
 - Zustand
-- Tailwind CSS
+- Tailwind CSS 4
 - Radix UI
 - Gemini API
-- iTunes Search API
-- Last.fm API
+- Vercel Analytics
 
 ## Project Structure
 
-UI, 추천 로직, 외부 API 연동, 상태 관리가 역할별로 분리되어 있습니다.
+화면, 상태, 추천 로직, 데이터 로딩 역할이 디렉터리별로 분리되어 있습니다.
 
 ```text
 src/
-├─ app/              # App router entry and API routes
-├─ components/       # UI components
-├─ data/             # Local question and mock preference data
-├─ domain/           # Normalization, scoring, recommendation logic
-├─ graph/            # Recommendation workflow functions
-├─ pages/            # Screen-level views
-├─ services/         # External API and LLM integrations
-├─ store/            # Zustand app state
-├─ types/            # Shared TypeScript types
-└─ utils/            # View and formatting helpers
+├─ app/                    # App Router entry, layout, and API routes
+│  └─ api/
+│     ├─ recommend/        # Main recommendation endpoint
+│     ├─ catalog/          # Catalog access endpoint
+│     └─ test/             # Local catalog smoke test endpoint
+├─ components/             # Shared UI, common visual components, result cards
+├─ data/                   # Local songs catalog JSON
+├─ domain/                 # Taste constants, normalization helpers, feedback types
+├─ graph/                  # App graph state initializer
+├─ pages/                  # Home, simple, detailed, loading, results views
+├─ services/               # Recommendation pipeline, Gemini, catalog loading, storage keys
+├─ store/                  # Zustand app state and recommendation window logic
+├─ types/                  # Shared request, graph, and song types
+└─ utils/                  # UI utility helpers
 ```
+
+핵심 파일은 아래와 같습니다.
+
+- `src/services/recommendationPipeline.server.ts`: 메인 추천 파이프라인
+- `src/services/songsCatalog.server.ts`: 로컬 카탈로그 로더
+- `src/services/gemini.ts`: Gemini JSON 호출 헬퍼
+- `src/domain/tasteConstants.ts`: 허용된 취향 라벨과 상황 옵션 정의
+- `src/store/useAppStore.ts`: 화면 상태 및 추천 결과 상태 관리
 
 ## Getting Started
 
-아래 순서대로 의존성 설치, 환경변수 설정, 개발 서버 실행을 하면 됩니다.
+의존성 설치와 Gemini 환경변수 설정 후 바로 실행할 수 있습니다.
 
 ### 1. Install dependencies
 
@@ -107,33 +128,34 @@ src/
 npm install
 ```
 
-### 2. Configure environment variables
+### 2. 환경변수 설정
 
-Create `.env.local` and set the values you need.
+`.env.local` 파일을 만들고 아래 값을 설정합니다.
 
 ```env
-LASTFM_API_KEY=your_lastfm_api_key
+GEMINI_API_KEY=your_gemini_api_key
 NEXT_PUBLIC_GEMINI_API_KEY=your_gemini_api_key
 NEXT_PUBLIC_GEMINI_MODEL=your_preferred_gemini_model
+GEMINI_MAX_OUTPUT_TOKENS=8192
 ```
 
-Notes:
+설명:
 
-- `LASTFM_API_KEY` is used for track tag enrichment.
-- `NEXT_PUBLIC_GEMINI_API_KEY` is used for free-text interpretation and reason generation.
-- If Gemini is not configured, the app falls back to heuristic profile enrichment and template-style reasons.
+- `GEMINI_API_KEY`는 서버 측에서 우선 사용하는 키입니다.
+- `NEXT_PUBLIC_GEMINI_API_KEY`도 현재 코드에서 fallback 용도로 지원합니다.
+- Gemini가 설정되지 않으면 서술형 입력 해석은 기본 휴리스틱 방식으로 대체됩니다.
 
-### 3. Run the development server
+### 3. 개발 서버 실행
 
 ```bash
 npm run dev
 ```
 
-Open `http://localhost:3000` in your browser.
+브라우저에서 `http://localhost:3000`을 열면 됩니다.
 
 ## Available Scripts
 
-개발, 빌드, 실행, 타입체크에 필요한 기본 스크립트입니다.
+개발 서버 실행, 프로덕션 빌드, 타입 검사용 스크립트입니다.
 
 ```bash
 npm run dev
@@ -144,23 +166,23 @@ npm run typecheck
 
 ## Current Limitations
 
-실시간 태그 품질과 로컬 목업 기반 보정 로직 때문에 아직 개선 여지가 있습니다.
+현재 버전은 로컬 카탈로그 기반이라 확장성과 실사용 측면에서 제한이 있습니다.
 
-- Last.fm tags are inconsistent across tracks, and some results come back with empty tags.
-- Collaborative scoring is still based on local mock preference data.
-- Some recommendation signals are inferred heuristically rather than sourced from structured audio features.
+- 곡 소스는 외부 실시간 음악 API가 아니라 로컬 JSON 카탈로그입니다.
+- Detailed mode에는 별도 자유 서술 필드가 없고, 서술형 해석은 Simple mode에서만 동작합니다.
+- 피드백 타입과 저장 키는 존재하지만, 아직 랭킹에 반영되는 완전한 피드백 루프는 연결되지 않았습니다.
+- 카탈로그 점수 계산은 기본적으로 규칙 기반이며, Gemini는 맥락 보정 레이어로 사용됩니다.
 
 ## Future Improvements
 
-실제 사용자 피드백과 더 풍부한 음악 메타데이터를 붙이는 방향으로 확장할 수 있습니다.
+향후에는 실시간 카탈로그, 사용자 피드백, 평가 지표를 붙이는 방향으로 확장할 수 있습니다.
 
-- Persist real user feedback and use it for ranking updates
-- Add evaluation dashboards for click-through and satisfaction signals
-- Improve genre and mood normalization dictionaries
-- Integrate richer structured music metadata
+- 로컬 JSON 데이터셋을 넘어서는 실시간 음악 카탈로그 연동
+- 사용자 피드백 저장 및 랭킹 반영
+- 추천 품질 평가 지표 추가
+- 가수 별칭, 분위기, 장르 매핑에 대한 정규화 확장
+- Gemini 보조 단계의 설명 품질 및 캐싱 개선
 
 ## License
 
-현재는 별도 라이선스를 추가하지 않은 상태입니다.
-
-No license has been added yet.
+현재 저장소에는 별도 라이선스 파일이 포함되어 있지 않습니다.
